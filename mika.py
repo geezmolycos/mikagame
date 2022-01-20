@@ -1,7 +1,6 @@
 from itertools import count, zip_longest
 import re
-
-from collections import namedtuple
+from copy import deepcopy
 
 import attr
 
@@ -220,13 +219,15 @@ def str_to_cells_list(s, template=None):
 
 def parse_convenient_obj_repr(s):
     "使用一个标点符号和字符串表示一个简单对象，比如是数字/字符串/真假"
-    m = re.match(r"([=#\+\-?])(.*)", s)
+    m = re.match(r"([=#$\+\-?])(.*)", s)
     type, value = m[1], m[2]
     obj = None
     if type == "=":
         obj = value
     elif type == "#":
         obj = int(value)
+    elif type == "$":
+        obj = float(value)
     elif type == "+":
         obj = True
     elif type == "-":
@@ -259,18 +260,18 @@ def parse_styleml_to_tokens(s):
         if len(rest) > 1 and rest[0] == "\\" and rest[1] in ("\\", "{", "}"):# 转义符
             plain_str += rest[1]
             rest = rest[2:]
-        tokens.append(("plain_str", plain_str))
+        tokens.append(("string", plain_str, {}))
         if not rest:
             break
         if rest[0] == "\\": # 标签标记的开始
             m = re.match(r"\\([0-9A-Za-z_]*)\[(.*?)\](.*)", rest, re.S)
             if m:
-                command, arguments, rest = m[1], m[2], m[3]
-                tokens.append(("argumented_command", command, arguments))
+                command, argument, rest = m[1], m[2], m[3]
+                tokens.append(("command", command, {"argument": argument}))
             else:
                 m = re.match(r"\\([0-9A-Za-z_]*) (.*)", rest, re.S)
                 command, rest = m[1], m[2]
-                tokens.append(("command", command))
+                tokens.append(("command", command, {}))
         elif rest[0] == "{":
             rest = rest[1:]
             tokens.append(("left_bracket",))
@@ -282,11 +283,9 @@ def parse_styleml_to_tokens(s):
 def styleml_tokens_to_cells_list(tokens):
     cells_list = [[]]
     for typ, *values in tokens:
-        if typ == "plain_str":
+        if typ == "string":
             plain_str = values[0]
-            template = ScreenCell()
-        elif typ == "styled_str":
-            plain_str, template = values
+            template = values[1].get("template") or ScreenCell()
         else:
             continue
         piece_cells_list = str_to_cells_list(plain_str, template)
@@ -298,32 +297,54 @@ def styleml_parse_style(tokens, initial_template=None): # 会将其他命令顺�
     step_template = [initial_template or ScreenCell()] # 解析嵌套格式标记的时候，使用栈来实现每一步的模板记录
     parsed_tokens = []
     for item in tokens:
-        if item[0] == "plain_str":
-            parsed_tokens.append(("styled_str", item[1], step_template[-1]))
+        if item[0] == "string":
+            parsed_tokens.append(("string", item[1], item[2] | {"template": step_template[-1]}))
         elif item[0] == "left_bracket":
             step_template.append(step_template[-1])
             parsed_tokens.append(item)
         elif item[0] == "right_bracket":
             step_template.pop()
             parsed_tokens.append(item)
-        elif item[0] == "argumented_command" and item[1] == "":
-            argument = item[2]
-            parsed_argument = parse_attr_style_argument(argument)
-            step_template[-1] = attr.evolve(step_template[-1], **parsed_argument)
+        elif item[0] == "command" and item[1] == "":
+            argument = item[2].get("argument")
+            if argument:
+                parsed_argument = parse_attr_style_argument(argument)
+                step_template[-1] = attr.evolve(step_template[-1], **parsed_argument)
         else:
             parsed_tokens.append(item)
     return parsed_tokens
 
-def styleml_parse_animation(s, default_delay=None):
+def styleml_parse_animation(tokens, default_delay=None):
     r"""
-    \delay[...]: 立即延时 ...(ms/s)
-    \tick[...]: 设置每个字符延时 ...(ms/s)
-    \char[...]: 角色行为，参数直接传给角色的类
+    \delay[...]: 立即延时 ...(s)
+    \tick[...]: 设置每个字符延时 ...(s)
     """
-    tokens = parse_styleml_to_tokens(s)
-    step_delay = []
-    before_delay_and_actions = []
+    step_tick = [default_delay]
+    parsed_tokens = []
+    for item in tokens:
+        if item[0] == "string":
+            if step_tick[-1] == None:
+                parsed_tokens.append(item)
+            else:
+                parsed_tokens.append(("string", item[1], item[2] | {"tick": step_tick[-1]}))
+        elif item[0] == "command" and item[1] == "tick":
+            if (argument := item[2].get("argument")) is not None:
+                step_tick[-1] = parse_convenient_obj_repr(argument)
+        elif item[0] == "command" and item[1] == "delay":
+            if (argument := item[2].get("argument")) is not None:
+                parsed_tokens.append(("delay", parse_convenient_obj_repr(argument)))
+        elif item[0] == "left_bracket":
+            step_tick.append(step_tick[-1])
+            parsed_tokens.append(item)
+        elif item[0] == "right_bracket":
+            step_tick.pop()
+            parsed_tokens.append(item)
+        else:
+            parsed_tokens.append(item)
+    return parsed_tokens
 
 
-
+if __name__ == "__main__":
+    _ = parse_styleml_to_tokens(r"\delay[$3]Oh\delay[$1] I have an \tick[$0.1]apple")
+    print(styleml_parse_animation(_))
 
