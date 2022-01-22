@@ -1,6 +1,6 @@
 from itertools import count, zip_longest
 import re
-from copy import deepcopy
+import asyncio
 
 import attr
 
@@ -136,15 +136,24 @@ class ScreenCell:
     undl = attr.ib(default=False)
     midl = attr.ib(default=False)
     topl = attr.ib(default=False)
-    
+
+@attr.s(frozen=True)
+class DynamicScreenCell(ScreenCell):
+
+    def __call__(self, tick):
+        return ScreenCell()
+
 @attr.s
 class GameScreen:
     map = attr.ib(factory=lambda: List2D(Vector2D(40, 25)))
+    tick = attr.ib(default=0)
 
     def get_cell(self, pos):
         c = self.map[pos]
         if c is None:
             c = ScreenCell()
+        elif isinstance(c, DynamicScreenCell):
+            c = c(self.tick)
         return c
 
     def print_cell(self, pos, cell):
@@ -176,7 +185,6 @@ def cells_list_to_footprints(pos, cells_list, dir0=Cardinal.RIGHT, dir1=Cardinal
         footprints.extend(cells_to_footprints(pos, cells, dir=dir0))
         pos += dir1
     return footprints
-
     
 def cells_list_to_footprints_line_wrap(pos, cells_list, dir0=Cardinal.RIGHT, dir1=Cardinal.DOWN, max_length=None, max_lines=None):
     if max_length is None:
@@ -193,6 +201,7 @@ def cells_list_to_footprints_line_wrap(pos, cells_list, dir0=Cardinal.RIGHT, dir
         else:
             continue
         break
+    return footprints
 
 def str_to_cells(s, template=None):
     if template is None:
@@ -280,18 +289,43 @@ def parse_styleml_to_tokens(s):
             tokens.append(("right_bracket",))
     return tokens
 
+@attr.s(frozen=True)
+class TransitionScreenCell(DynamicScreenCell):
+    transition_tick = attr.ib(default=0)
+    before = attr.ib(default=ScreenCell())
+    after = attr.ib(default=ScreenCell())
+
+    def __call__(self, tick):
+        if tick <= self.transition_tick:
+            return self.before
+        else:
+            return self.after
+
 def styleml_tokens_to_cells_list(tokens):
     cells_list = [[]]
     for typ, *values in tokens:
         if typ == "string":
             plain_str = values[0]
             template = values[1].get("template") or ScreenCell()
-        else:
-            continue
-        piece_cells_list = str_to_cells_list(plain_str, template)
-        cells_list[-1].extend(piece_cells_list[0])
-        cells_list.extend(piece_cells_list[1:]) # 如果长度是1的话，该行为空操作
+            piece_cells_list = str_to_cells_list(plain_str, template)
+            cells_list[-1].extend(piece_cells_list[0])
+            cells_list.extend(piece_cells_list[1:]) # 如果长度是1的话，该行为空操作
     return cells_list
+
+def styleml_tokens_to_footprint_delays(tokens):
+    delays = []
+    immediate_delay = 0
+    for typ, *values in tokens:
+        if typ == "string":
+            plain_str = values[0]
+            tick = values[1].get("tick") or 0
+            len_no_newline = len(plain_str) - plain_str.count("\n")
+            if len_no_newline != 0:
+                delays.extend((tick + immediate_delay,) + (tick,) * (len_no_newline - 1))
+                immediate_delay = 0
+        elif typ == "delay":
+            immediate_delay += values[0]
+    return delays
 
 def styleml_parse_style(tokens, initial_template=None): # 会将其他命令顺延
     step_template = [initial_template or ScreenCell()] # 解析嵌套格式标记的时候，使用栈来实现每一步的模板记录
@@ -343,6 +377,9 @@ def styleml_parse_animation(tokens, default_delay=None):
             parsed_tokens.append(item)
     return parsed_tokens
 
+# TODO: 使用asyncio写出文本动画，而且可以由其他事件中断
+# TODO: 进行游戏本体设计，因为基础已经打好了
+# 游戏本体应该由几个类组成，比如一个类负责地图，一个类负责人物对话，但是这些类由一个大的状态机类管理
 
 if __name__ == "__main__":
     _ = parse_styleml_to_tokens(r"\delay[$3]Oh\delay[$1] I have an \tick[$0.1]apple")
