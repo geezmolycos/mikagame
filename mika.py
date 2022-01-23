@@ -124,6 +124,11 @@ class List2D:
 
     def __iter__(self):
         yield from self.l
+    
+    def copy(self):
+        new = type(self)(self.dim)
+        new.l = self.l.copy()
+        return new
 
 @attr.s(frozen=True)
 class ScreenCell:
@@ -171,6 +176,11 @@ class GameScreen:
         for y in range(pos0.y, pos1.y):
             for x in range(pos0.x, pos1.x):
                 self.paint_cell(Vector2D(x, y), styles)
+    
+    async def async_print_footprints(self, footprints, delays):
+        for (pos, cell), pre_delay in zip(footprints, delays):
+            await asyncio.sleep(pre_delay)
+            self.print_cell(pos, cell)
     
 def cells_to_footprints(pos, cells, dir=Cardinal.RIGHT):
     footprints = []
