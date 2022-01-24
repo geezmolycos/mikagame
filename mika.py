@@ -148,6 +148,18 @@ class DynamicScreenCell(ScreenCell):
     def __call__(self, tick):
         return ScreenCell()
 
+@attr.s(frozen=True)
+class TransitionScreenCell(DynamicScreenCell):
+    transition_tick = attr.ib(default=0)
+    before = attr.ib(default=ScreenCell())
+    after = attr.ib(default=ScreenCell())
+
+    def __call__(self, tick):
+        if tick <= self.transition_tick:
+            return self.before
+        else:
+            return self.after
+
 @attr.s
 class GameScreen:
     map = attr.ib(factory=lambda: List2D(Vector2D(40, 25)))
@@ -189,19 +201,19 @@ def cells_to_footprints(pos, cells, dir=Cardinal.RIGHT):
         pos += dir
     return footprints
     
-def cells_list_to_footprints(pos, cells_list, dir0=Cardinal.RIGHT, dir1=Cardinal.DOWN):
+def mlcells_to_footprints(pos, mlcells, dir0=Cardinal.RIGHT, dir1=Cardinal.DOWN):
     footprints = []
-    for cells in cells_list:
+    for cells in mlcells:
         footprints.extend(cells_to_footprints(pos, cells, dir=dir0))
         pos += dir1
     return footprints
     
-def cells_list_to_footprints_line_wrap(pos, cells_list, dir0=Cardinal.RIGHT, dir1=Cardinal.DOWN, max_length=None, max_lines=None):
+def mlcells_to_footprints_line_wrap(pos, mlcells, dir0=Cardinal.RIGHT, dir1=Cardinal.DOWN, max_length=None, max_lines=None):
     if max_length is None:
-        return cells_list_to_footprints(pos, cells_list, dir0=dir0, dir1=dir1)
+        return mlcells_to_footprints(pos, mlcells, dir0=dir0, dir1=dir1)
     footprints = []
     line_number = 0
-    for cells in cells_list:
+    for cells in mlcells:
         for line in grouper(cells, max_length): # 将每一行按最大字符数分成若干行
             footprints.extend(cells_to_footprints(pos, line, dir=dir0))
             line_number += 1
@@ -228,13 +240,13 @@ def str_to_cells(s, template=None):
             cells.append(ch_t)
     return cells
 
-def str_to_cells_list(s, template=None):
+def str_to_mlcells(s, template=None):
     "若template是单个ScreenCell，则将该template作为模板。若template是ch->ScreenCell的映射表，则采用该表"
     template = template or ScreenCell()
-    cells_list = []
+    mlcells = []
     for ss in s.split("\n"):
-        cells_list.append(str_to_cells(ss, template))
-    return cells_list
+        mlcells.append(str_to_cells(ss, template))
+    return mlcells
 
 def parse_convenient_obj_repr(s):
     "使用一个标点符号和字符串表示一个简单对象，比如是数字/字符串/真假"
@@ -270,7 +282,7 @@ def parse_attr_style_argument(s):
         styles[key] = obj
     return styles
 
-def parse_styleml_to_tokens(s):
+def styleml_str_to_tokens(s):
     tokens = []
     rest = s
     while True:
@@ -299,45 +311,7 @@ def parse_styleml_to_tokens(s):
             tokens.append(("right_bracket",))
     return tokens
 
-@attr.s(frozen=True)
-class TransitionScreenCell(DynamicScreenCell):
-    transition_tick = attr.ib(default=0)
-    before = attr.ib(default=ScreenCell())
-    after = attr.ib(default=ScreenCell())
-
-    def __call__(self, tick):
-        if tick <= self.transition_tick:
-            return self.before
-        else:
-            return self.after
-
-def styleml_tokens_to_cells_list(tokens):
-    cells_list = [[]]
-    for typ, *values in tokens:
-        if typ == "string":
-            plain_str = values[0]
-            template = values[1].get("template") or ScreenCell()
-            piece_cells_list = str_to_cells_list(plain_str, template)
-            cells_list[-1].extend(piece_cells_list[0])
-            cells_list.extend(piece_cells_list[1:]) # 如果长度是1的话，该行为空操作
-    return cells_list
-
-def styleml_tokens_to_footprint_delays(tokens):
-    delays = []
-    immediate_delay = 0
-    for typ, *values in tokens:
-        if typ == "string":
-            plain_str = values[0]
-            tick = values[1].get("tick") or 0
-            len_no_newline = len(plain_str) - plain_str.count("\n")
-            if len_no_newline != 0:
-                delays.extend((tick + immediate_delay,) + (tick,) * (len_no_newline - 1))
-                immediate_delay = 0
-        elif typ == "delay":
-            immediate_delay += values[0]
-    return delays
-
-def styleml_parse_style(tokens, initial_template=None): # 会将其他命令顺延
+def styleml_tokens_parse_style(tokens, initial_template=None): # 会将其他命令顺延
     step_template = [initial_template or ScreenCell()] # 解析嵌套格式标记的时候，使用栈来实现每一步的模板记录
     parsed_tokens = []
     for item in tokens:
@@ -358,7 +332,7 @@ def styleml_parse_style(tokens, initial_template=None): # 会将其他命令顺�
             parsed_tokens.append(item)
     return parsed_tokens
 
-def styleml_parse_animation(tokens, default_delay=None):
+def styleml_tokens_parse_animation(tokens, default_delay=None):
     r"""
     \delay[...]: 立即延时 ...(s)
     \tick[...]: 设置每个字符延时 ...(s)
@@ -387,11 +361,39 @@ def styleml_parse_animation(tokens, default_delay=None):
             parsed_tokens.append(item)
     return parsed_tokens
 
+
+def styleml_tokens_to_mlcells(tokens):
+    mlcells = [[]]
+    for typ, *values in tokens:
+        if typ == "string":
+            plain_str = values[0]
+            template = values[1].get("template") or ScreenCell()
+            piece_mlcells = str_to_mlcells(plain_str, template)
+            mlcells[-1].extend(piece_mlcells[0])
+            mlcells.extend(piece_mlcells[1:]) # 如果长度是1的话，该行为空操作
+    return mlcells
+
+def styleml_tokens_to_footprint_delays(tokens):
+    delays = []
+    immediate_delay = 0
+    for typ, *values in tokens:
+        if typ == "string":
+            plain_str = values[0]
+            tick = values[1].get("tick") or 0
+            len_no_newline = len(plain_str) - plain_str.count("\n")
+            if len_no_newline != 0:
+                delays.extend((tick + immediate_delay,) + (tick,) * (len_no_newline - 1))
+                immediate_delay = 0
+        elif typ == "delay":
+            immediate_delay += values[0]
+    return delays
+
+
 # TODO: 使用asyncio写出文本动画，而且可以由其他事件中断
 # TODO: 进行游戏本体设计，因为基础已经打好了
 # 游戏本体应该由几个类组成，比如一个类负责地图，一个类负责人物对话，但是这些类由一个大的状态机类管理
 
 if __name__ == "__main__":
-    _ = parse_styleml_to_tokens(r"\delay[$3]Oh\delay[$1] I have an \tick[$0.1]apple")
-    print(styleml_parse_animation(_))
+    _ = styleml_str_to_tokens(r"\delay[$3]Oh\delay[$1] I have an \tick[$0.1]apple")
+    print(styleml_tokens_parse_animation(_))
 

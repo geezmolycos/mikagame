@@ -1,5 +1,6 @@
 
-from mika import Vector2D, List2D, Cardinal, ScreenCell, parse_styleml_to_tokens, styleml_parse_style, styleml_tokens_to_cells_list, cells_list_to_footprints
+from mika import Vector2D, List2D, Cardinal, ScreenCell
+from mika import styleml_str_to_tokens, styleml_tokens_parse_style, styleml_tokens_to_mlcells, mlcells_to_footprints
 from mika import styleml_parse_animation, styleml_tokens_to_footprint_delays
 from mika_htmlui import HTMLGameScreen
 
@@ -39,12 +40,12 @@ htmlui.registered_onkeypress.append(cat)
 
 def _(e):
     s = jq("#sty-text").val()
-    tokens = parse_styleml_to_tokens(s)
-    tokens = styleml_parse_style(tokens)
+    tokens = styleml_str_to_tokens(s)
+    tokens = styleml_tokens_parse_style(tokens)
     tokens = styleml_parse_animation(tokens)
     delays = styleml_tokens_to_footprint_delays(tokens)
-    cells_list = styleml_tokens_to_cells_list(tokens)
-    footprints = cells_list_to_footprints(Vector2D(0, 0), cells_list)
+    cells_list = styleml_tokens_to_mlcells(tokens)
+    footprints = mlcells_to_footprints(Vector2D(0, 0), cells_list)
     #htmlui.scr.print_footprints(footprints)
     asyncio.create_task(htmlui.async_print_footprints(footprints, delays))
     # htmlui.screen_update(jq_cont)
