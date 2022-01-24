@@ -11,6 +11,7 @@ from mika import Vector2D, GameScreen, ScreenCell
 class HTMLGameScreen(GameScreen):
     
     def __attrs_post_init__(self):
+        super().__attrs_post_init__()
         self.jq_cont = self.create_jq_container()
         self.screen_refresh_all()
         
@@ -21,6 +22,11 @@ class HTMLGameScreen(GameScreen):
     def paint_cell(self, pos, styles):
         super().paint_cell(pos, styles)
         self.screen_refresh_pos(pos)
+    
+    def clear_screen(self):
+        super().clear_screen()
+        if hasattr(self, "jq_cont"): # 刚开始的时候jq_cont还没有初始化
+            self.screen_refresh_all()
 
     registered_onclick = attr.ib(factory=list)
     def onclick_handler_global(self, e):

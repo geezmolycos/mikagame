@@ -23,8 +23,7 @@
         </style>
     </head>
     <body>
-        Pyodide test page <br>
-        Open your browser console to see Pyodide output
+        Some text.<br>
         <script type="text/javascript">
         async function main(){
             let pyodide = await loadPyodide({
@@ -44,6 +43,9 @@
         }
         main();
         </script>
-        <textarea id="sty-text"></textarea> <button id="show-sty">update</button>
+        <textarea id="sty-text"></textarea>
+        <button id="show-sty">update</button>
+        <button id="clear-sty">clear</button>
+        <button id="interrupt-sty-animation">interrupt</button>
     </body>
 </html>

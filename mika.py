@@ -159,13 +159,17 @@ class TransitionScreenCell(DynamicScreenCell):
             return self.before
         else:
             return self.after
-
+from time import time
 @attr.s
 class GameScreen:
-    map = attr.ib(factory=lambda: List2D(Vector2D(40, 25)))
+    map = attr.ib(init=False)
+    dim = attr.ib(default=Vector2D(40, 25))
     tick = attr.ib(default=0)
+    
+    def __attrs_post_init__(self):
+        self.clear_screen()
 
-    def get_cell(self, pos):
+    def get_display_cell(self, pos):
         c = self.map[pos]
         if c is None:
             c = ScreenCell()
@@ -189,10 +193,22 @@ class GameScreen:
             for x in range(pos0.x, pos1.x):
                 self.paint_cell(Vector2D(x, y), styles)
     
-    async def async_print_footprints(self, footprints, delays):
-        for (pos, cell), pre_delay in zip(footprints, delays):
-            await asyncio.sleep(pre_delay)
+    async def async_print_footprints(self, footprints, pre_delays, interruption_event=None):
+        for (pos, cell), pre_delay in zip(footprints, pre_delays):
+            if pre_delay != 0:
+                if interruption_event:
+                    done, pending = await asyncio.wait(
+                        [asyncio.sleep(pre_delay), interruption_event.wait()],
+                        return_when=asyncio.FIRST_COMPLETED)
+                    if interruption_event.is_set():
+                        return
+                    list(pending)[0].cancel() # 一定是interruption_event
+                else:
+                    await asyncio.sleep(pre_delay)
             self.print_cell(pos, cell)
+    
+    def clear_screen(self):
+        self.map = List2D(self.dim)
     
 def cells_to_footprints(pos, cells, dir=Cardinal.RIGHT):
     footprints = []
@@ -389,7 +405,8 @@ def styleml_tokens_to_footprint_delays(tokens):
     return delays
 
 
-# TODO: 使用asyncio写出文本动画，而且可以由其他事件中断
+# TODO: 可以回溯位置的字符串to footprint
+# TODO: 动画的paint
 # TODO: 进行游戏本体设计，因为基础已经打好了
 # 游戏本体应该由几个类组成，比如一个类负责地图，一个类负责人物对话，但是这些类由一个大的状态机类管理
 
