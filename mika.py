@@ -223,15 +223,25 @@ def mlcells_to_footprints(pos, mlcells, dir0=Cardinal.RIGHT, dir1=Cardinal.DOWN)
         footprints.extend(cells_to_footprints(pos, cells, dir=dir0))
         pos += dir1
     return footprints
-    
-def mlcells_to_footprints_line_wrap(pos, mlcells, dir0=Cardinal.RIGHT, dir1=Cardinal.DOWN, max_length=None, max_lines=None):
+ 
+
+def mlcells_to_footprints_line_wrap(
+        pos, mlcells, dir0=Cardinal.RIGHT, dir1=Cardinal.DOWN,
+        initial_offset=0, max_length=None, max_lines=None):
     if max_length is None:
         return mlcells_to_footprints(pos, mlcells, dir0=dir0, dir1=dir1)
+    sentinel = object()
+    try:
+        mlcells[0] = [sentinel]*initial_offset + mlcells[0]
+    except IndexError:
+        pass
     footprints = []
     line_number = 0
     for cells in mlcells:
-        for line in grouper(cells, max_length): # 将每一行按最大字符数分成若干行
-            footprints.extend(cells_to_footprints(pos, line, dir=dir0))
+        for line in grouper(cells, max_length, sentinel): # 将每一行按最大字符数分成若干行
+            line_footprints = cells_to_footprints(pos, line, dir=dir0)
+            line_footprints = [(pos, cell) for pos, cell in line_footprints if cell != sentinel]
+            footprints.extend(line_footprints)
             line_number += 1
             pos += dir1
             if max_lines is not None and line_number >= max_lines: # 达到最大行数限制
@@ -240,6 +250,11 @@ def mlcells_to_footprints_line_wrap(pos, mlcells, dir0=Cardinal.RIGHT, dir1=Card
             continue
         break
     return footprints
+
+def mlcells_to_footprints_line_wrap_portal(
+        pos, mlcells, dir0=Cardinal.RIGHT, dir1=Cardinal.DOWN,
+        initial_offset=0, max_length=None, max_lines=None, portals=None):
+    pass
 
 def str_to_cells(s, template=None):
     if template is None:
@@ -411,6 +426,8 @@ def styleml_tokens_to_footprint_delays(tokens):
 # 游戏本体应该由几个类组成，比如一个类负责地图，一个类负责人物对话，但是这些类由一个大的状态机类管理
 
 if __name__ == "__main__":
-    _ = styleml_str_to_tokens(r"\delay[$3]Oh\delay[$1] I have an \tick[$0.1]apple")
-    print(styleml_tokens_parse_animation(_))
+    from pprint import pprint
+    _ = styleml_str_to_tokens(r"Oh I have an apple")
+    mlcells = styleml_tokens_to_mlcells(_)
+    pprint(mlcells_to_footprints_line_wrap(Vector2D(0, 0), mlcells, initial_offset=8, max_length=5, max_lines=4))
 
