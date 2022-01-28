@@ -15,6 +15,10 @@ class Vector2D:
 
     x = attr.ib()
     y = attr.ib()
+    
+    @property
+    def length_sq(self):
+        return (self.x**2 + self.y**2)
 
     @property
     def length(self):
@@ -193,19 +197,20 @@ class GameScreen:
             for x in range(pos0.x, pos1.x):
                 self.paint_cell(Vector2D(x, y), styles)
     
-    async def async_print_footprints(self, footprints, pre_delays, interruption_event=None):
-        for (pos, cell), pre_delay in zip(footprints, pre_delays):
+    async def async_print_footprints(self, footprints, pre_delays, interruption_event=None, start_from=0):
+        footprints = footprints[start_from:]
+        pre_delays = pre_delays[start_from:]
+        for i, (pos, cell), pre_delay in zip(count(0), footprints, pre_delays):
             if pre_delay != 0:
-                if interruption_event:
-                    done, pending = await asyncio.wait(
-                        [asyncio.sleep(pre_delay), interruption_event.wait()],
-                        return_when=asyncio.FIRST_COMPLETED)
-                    if interruption_event.is_set():
-                        return
-                    list(pending)[0].cancel() # 一定是interruption_event
-                else:
-                    await asyncio.sleep(pre_delay)
+                done, pending = await asyncio.wait([
+                    asyncio.sleep(pre_delay),
+                    (interruption_event or asyncio.Event()).wait(),
+                    ], return_when=asyncio.FIRST_COMPLETED)
+                if interruption_event.is_set():
+                    return i
+                list(pending)[0].cancel() # 一定是interruption_event
             self.print_cell(pos, cell)
+        return i
     
     def clear_screen(self):
         self.map = List2D(self.dim)
@@ -227,34 +232,90 @@ def mlcells_to_footprints(pos, mlcells, dir0=Cardinal.RIGHT, dir1=Cardinal.DOWN)
 
 def mlcells_to_footprints_line_wrap(
         pos, mlcells, dir0=Cardinal.RIGHT, dir1=Cardinal.DOWN,
-        initial_offset=0, max_length=None, max_lines=None):
-    if max_length is None:
-        return mlcells_to_footprints(pos, mlcells, dir0=dir0, dir1=dir1)
+        initial_offset=(0, 0), area=(0, 0)):
+    max_lines, line_length = area
     sentinel = object()
     try:
-        mlcells[0] = [sentinel]*initial_offset + mlcells[0]
+        mlcells[0] = [sentinel]*initial_offset[1] + mlcells[0]
+        mlcells = [[] for _ in range(initial_offset[0])] + mlcells
     except IndexError:
         pass
     footprints = []
     line_number = 0
-    for cells in mlcells:
-        for line in grouper(cells, max_length, sentinel): # 将每一行按最大字符数分成若干行
-            line_footprints = cells_to_footprints(pos, line, dir=dir0)
-            line_footprints = [(pos, cell) for pos, cell in line_footprints if cell != sentinel]
-            footprints.extend(line_footprints)
-            line_number += 1
-            pos += dir1
-            if max_lines is not None and line_number >= max_lines: # 达到最大行数限制
-                break
+    wrapped_lines = []
+    for cells in mlcells: # 将每一行按最大字符数分成若干行
+        if len(cells) == 0: # 特殊情况，如果有一个空行，就要加一行，否则有line_length的时候加不上
+            wrapped_lines.append(cells)
+        elif line_length:
+            wrapped_lines.extend(grouper(cells, line_length, sentinel))
         else:
-            continue
-        break
+            wrapped_lines.append(cells)
+    for line in wrapped_lines: 
+        line_footprints = cells_to_footprints(pos, line, dir=dir0)
+        line_footprints = [(pos, cell) for pos, cell in line_footprints if cell != sentinel]
+        footprints.extend(line_footprints)
+        line_number += 1
+        pos += dir1
+        if max_lines is not None and line_number >= max_lines: # 达到最大行数限制
+            break
     return footprints
+
+def split_mlcells_by_index(mlcells, index):
+    before_full_lines = mlcells[:index[0]]
+    after_full_lines = mlcells[index[0]+1:]
+    before_half_line = mlcells[index[0]][:index[1]]
+    after_half_line = mlcells[index[0]][index[1]:]
+    return before_full_lines + [before_half_line], [after_half_line] + after_full_lines
 
 def mlcells_to_footprints_line_wrap_portal(
         pos, mlcells, dir0=Cardinal.RIGHT, dir1=Cardinal.DOWN,
-        initial_offset=0, max_length=None, max_lines=None, portals=None):
-    pass
+        initial_offset=(0, 0), area=(None, None), portals=None):
+    """
+    portals是portal的列表，每一个portal是一个元组，格式: (开始字符序号，结束位置类型，结束位置)
+    类型为"absolute"的话，代表绝对位置，结束位置是一个二元组，代表行数和列数。
+    (NotImplemented)类型为"relative"的话，代表相对位置，结束位置是一个二元组，代表偏移的行数和列数。
+    类型为"referential"的话，代表引用位置，结束位置是一个二元组，表示结束字符的序号，会转到结束字符所在的地方继续输出。
+    """
+    max_lines, line_length = area
+    portals = sorted(portals, key=lambda x: x[0])
+    segments = []
+    rest = mlcells
+    current_out_type = "absolute"
+    current_out = initial_offset
+    for in_index, out_type, out in portals:
+        mlcells_seg, rest = split_mlcells_by_index(rest, in_index)
+        segments.append((current_out_type, current_out, mlcells_seg))
+        current_out_type = out_type
+        current_out = out
+    segments.append((current_out_type, current_out, rest))
+    rendered_footprints = []
+    for out_type, out, mlcells_seg in segments:
+        if out_type == "absolute":
+            rendered_footprints.extend(
+                mlcells_to_footprints_line_wrap(
+                    pos, mlcells_seg, dir0=dir0, dir1=dir1, initial_offset=out,
+                    area=(max_lines, line_length)
+                    )
+                )
+        elif out_type == "referential":
+            index_in_footprints = 0
+            for line in mlcells[:out[0]]:
+                index_in_footprints += len(line)
+            index_in_footprints += out[1]
+            try:
+                referent_pos = rendered_footprints[index_in_footprints][0]
+            except IndexError:
+                continue # 引用目标已经出界了
+            row = (referent_pos - pos).dot_product(dir1) // dir1.length_sq
+            col = (referent_pos - pos).dot_product(dir0) // dir0.length_sq
+            rendered_footprints.extend(
+                mlcells_to_footprints_line_wrap(
+                    pos, mlcells_seg, dir0=dir0, dir1=dir1, initial_offset=(row, col),
+                    area=(max_lines, line_length)
+                    )
+                )
+    return rendered_footprints
+            
 
 def str_to_cells(s, template=None):
     if template is None:
@@ -419,6 +480,28 @@ def styleml_tokens_to_footprint_delays(tokens):
             immediate_delay += values[0]
     return delays
 
+def styleml_tokens_to_portals(tokens):
+    portals = []
+    anchors = {}
+    row, col = 0, 0 # 记录当前的行数和列数
+    for typ, *values in tokens:
+        if typ == "string":
+            s = values[0]
+            lines = s.split("\n")
+            if len(lines) > 1:
+                col = 0
+            row += len(lines) - 1
+            col += len(lines[-1])
+        elif typ == "command" and values[0] == "anchor":
+            label = parse_convenient_obj_repr(values[1].get("argument"))
+            anchors[label] = (row, col)
+        elif typ == "command" and values[0] == "repos":
+            target = parse_attr_style_argument(values[1].get("argument"))
+            portals.append(((row, col), "absolute", (target["row"], target["col"])))
+        elif typ == "command" and values[0] == "chain":
+            label = parse_convenient_obj_repr(values[1].get("argument"))
+            portals.append(((row, col), "referential", anchors[label]))
+    return portals
 
 # TODO: 可以回溯位置的字符串to footprint
 # TODO: 动画的paint
@@ -427,7 +510,10 @@ def styleml_tokens_to_footprint_delays(tokens):
 
 if __name__ == "__main__":
     from pprint import pprint
-    _ = styleml_str_to_tokens(r"Oh I have an apple")
+    _ = styleml_str_to_tokens(r"Oh I have an \anchor[=ap]apple, I have a pen. \chain[=ap]APPLE")
     mlcells = styleml_tokens_to_mlcells(_)
-    pprint(mlcells_to_footprints_line_wrap(Vector2D(0, 0), mlcells, initial_offset=8, max_length=5, max_lines=4))
+    pprint(mlcells_to_footprints_line_wrap_portal(
+        Vector2D(0, 0), mlcells, initial_offset=(0, 2), area=(4, 8),
+        portals=styleml_tokens_to_portals(_)
+        ))
 

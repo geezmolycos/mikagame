@@ -1,7 +1,7 @@
 
 from mika import Vector2D, List2D, Cardinal, ScreenCell
-from mika import styleml_str_to_tokens, styleml_tokens_parse_style, styleml_tokens_to_mlcells, mlcells_to_footprints
-from mika import styleml_tokens_parse_animation, styleml_tokens_to_footprint_delays
+from mika import styleml_str_to_tokens, styleml_tokens_parse_style, styleml_tokens_to_mlcells, mlcells_to_footprints_line_wrap_portal
+from mika import styleml_tokens_parse_animation, styleml_tokens_to_footprint_delays, styleml_tokens_to_portals
 from mika_htmlui import HTMLGameScreen
 
 from pyodide import create_proxy
@@ -47,8 +47,10 @@ def _(e):
     tokens = styleml_tokens_parse_style(tokens)
     tokens = styleml_tokens_parse_animation(tokens)
     delays = styleml_tokens_to_footprint_delays(tokens)
+    portals = styleml_tokens_to_portals(tokens)
     cells_list = styleml_tokens_to_mlcells(tokens)
-    footprints = mlcells_to_footprints(Vector2D(0, 0), cells_list)
+    footprints = mlcells_to_footprints_line_wrap_portal(
+        Vector2D(0, 0), cells_list, area=(25, 10), portals=portals)
     #htmlui.scr.print_footprints(footprints)
     
     global next_animation_id
