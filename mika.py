@@ -214,6 +214,11 @@ class GameScreen:
     
     def clear_screen(self):
         self.map = List2D(self.dim)
+
+    def clear_rectangle(self, pos0, pos1):
+        for y in range(pos0.y, pos1.y):
+            for x in range(pos0.x, pos1.x):
+                self.print_cell(Vector2D(x, y), None)
     
 def cells_to_footprints(pos, cells, dir=Cardinal.RIGHT):
     footprints = []
@@ -438,26 +443,33 @@ def styleml_tokens_parse_animation(tokens, default_delay=None):
     r"""
     \delay[...]: 立即延时 ...(s)
     \tick[...]: 设置每个字符延时 ...(s)
+    \tickm[...]: 设置延时倍率
     """
     step_tick = [default_delay]
+    step_tick_multiplier = [1]
     parsed_tokens = []
     for item in tokens:
         if item[0] == "string":
             if step_tick[-1] == None:
                 parsed_tokens.append(item)
             else:
-                parsed_tokens.append(("string", item[1], item[2] | {"tick": step_tick[-1]}))
+                parsed_tokens.append(("string", item[1], item[2] | {"tick": step_tick[-1] * step_tick_multiplier[-1]}))
         elif item[0] == "command" and item[1] == "tick":
             if (argument := item[2].get("argument")) is not None:
                 step_tick[-1] = parse_convenient_obj_repr(argument)
+        elif item[0] == "command" and item[1] == "tickm":
+            if (argument := item[2].get("argument")) is not None:
+                step_tick_multiplier[-1] = parse_convenient_obj_repr(argument)
         elif item[0] == "command" and item[1] == "delay":
             if (argument := item[2].get("argument")) is not None:
                 parsed_tokens.append(("delay", parse_convenient_obj_repr(argument)))
         elif item[0] == "left_bracket":
             step_tick.append(step_tick[-1])
+            step_tick_multiplier.append(step_tick_multiplier[-1])
             parsed_tokens.append(item)
         elif item[0] == "right_bracket":
             step_tick.pop()
+            step_tick_multiplier.pop()
             parsed_tokens.append(item)
         else:
             parsed_tokens.append(item)

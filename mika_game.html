@@ -23,7 +23,7 @@
         </style>
     </head>
     <body>
-        Some text.<br>
+        mika game.<br>
         <script type="text/javascript">
         async function main(){
             let pyodide = await loadPyodide({
@@ -39,7 +39,7 @@
                 with open("mika_htmlui.py", "wb") as f:
                     f.write(await response.bytes())
             `)
-            pyodide.runPython(await (await fetch("mika_cat.py")).text());
+            pyodide.runPython(await (await fetch("mika_dialogue_demo.py")).text());
         }
         main();
         </script>
