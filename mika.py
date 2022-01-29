@@ -343,6 +343,8 @@ def str_to_mlcells(s, template=None):
 def parse_convenient_obj_repr(s):
     "使用一个标点符号和字符串表示一个简单对象，比如是数字/字符串/真假"
     m = re.match(r"([=#$\+\-?])(.*)", s)
+    if not m:
+        return None
     type, value = m[1], m[2]
     obj = None
     if type == "=":
@@ -361,18 +363,26 @@ def parse_convenient_obj_repr(s):
 
 def parse_convenient_pair(s):
     "使用一个key和convenient obj repr相连，代表一个键-值对"
-    m = re.match(r"([0-9A-Za-z_]+)(.*)", s)
+    m = re.match(r"([0-9A-Za-z_]*)(.*)", s)
     key, repr = m[1], m[2]
     obj = parse_convenient_obj_repr(repr)
     return key, obj
 
-def parse_attr_style_argument(s):
+def parse_attr_style_argument(s, lower=parse_convenient_pair):
     "解析格式标记方括号中的文本"
     styles = {}
     for piece in s.split(","):
-        key, obj = parse_convenient_pair(piece)
+        key, obj = lower(piece)
         styles[key] = obj
     return styles
+
+def parse_attr_style_multi_argument(s, lower=parse_attr_style_argument):
+    "使用'|'分隔开的参数中的若干个部分"
+    arguments = []
+    for piece in s.split("|"):
+        obj = lower(piece)
+        arguments.append(obj)
+    return arguments
 
 def styleml_str_to_tokens(s):
     tokens = []
@@ -386,7 +396,7 @@ def styleml_str_to_tokens(s):
         tokens.append(("string", plain_str, {}))
         if not rest:
             break
-        if rest[0] == "\\": # 标签标记的开始
+        if rest[0] == "\\": # 命令的开始
             m = re.match(r"\\([0-9A-Za-z_]*)\[(.*?)\](.*)", rest, re.S)
             if m:
                 command, argument, rest = m[1], m[2], m[3]
@@ -481,6 +491,11 @@ def styleml_tokens_to_footprint_delays(tokens):
     return delays
 
 def styleml_tokens_to_portals(tokens):
+    r"""
+    \anchor[名字]代表一个锚点
+    而\chain[名字]会寻找对应的锚点，将字符输出的位置重定位到锚点上
+    \repos则会重定位字符输出到指定的行数和列数
+    """
     portals = []
     anchors = {}
     row, col = 0, 0 # 记录当前的行数和列数
@@ -493,24 +508,61 @@ def styleml_tokens_to_portals(tokens):
             row += len(lines) - 1
             col += len(lines[-1])
         elif typ == "command" and values[0] == "anchor":
-            label = parse_convenient_obj_repr(values[1].get("argument"))
+            label = values[1].get("argument")
             anchors[label] = (row, col)
         elif typ == "command" and values[0] == "repos":
             target = parse_attr_style_argument(values[1].get("argument"))
             portals.append(((row, col), "absolute", (target["row"], target["col"])))
         elif typ == "command" and values[0] == "chain":
-            label = parse_convenient_obj_repr(values[1].get("argument"))
+            label = values[1].get("argument")
             portals.append(((row, col), "referential", anchors[label]))
     return portals
 
-# TODO: 可以回溯位置的字符串to footprint
-# TODO: 动画的paint
+def styleml_tokens_expand_macros(tokens, recursive=False):
+    r"""
+    定义宏的命令如：\def[宏名|宏内容]
+    宏内容中有可能出现的特殊字符，包括"\", "[", "]", "|"，采用#=s#, #=l#, #=r#, #=b#表示
+    参数用#名字#表示
+    而"#"本身用##表示
+    消除宏的命令：\undef[宏名]
+    调用宏的命令如：\exp[宏名|参数]
+    """
+    macros = {}
+    parsed_tokens = []
+    for typ, *values in tokens:
+        if typ == "command" and values[0] == "def":
+            arguments = values[1].get("argument")
+            arguments = parse_attr_style_multi_argument(arguments, lambda x: x)
+            macro_name, macro_arguments_pattern, macro_content = arguments
+            macro_arguments_pattern = parse_attr_style_argument(macro_arguments_pattern)
+            macros[macro_name] = (macro_arguments_pattern, macro_content)
+        elif typ == "command" and values[0] == "undef":
+            macros.pop(macro_name)
+        elif typ == "command" and values[0] == "exp":
+            arguments = values[1].get("argument")
+            arguments = parse_attr_style_multi_argument(arguments, lambda x: x)
+            macro_name, macro_arguments = arguments
+            macro_arguments = parse_attr_style_argument(macro_arguments) # 此时为dict
+            macro_arguments_pattern, macro_content = macros[macro_name]
+            macro_arguments.update({"": "#", "=s": "\\", "=l": "[", "=r": "]", "=b": "|"})
+            expanded = re.sub(r"#(.*?)#", lambda match: macro_arguments.get(match[1], ""), macro_content)
+            parsed_tokens.extend(styleml_str_to_tokens(expanded))
+            if recursive:
+                parsed_tokens = styleml_tokens_expand_macros(parsed_tokens, recursive=True)
+        else:
+            parsed_tokens.append((typ, *values))
+    return parsed_tokens
+    
+
+# TODO: 编写styleml的宏
 # TODO: 进行游戏本体设计，因为基础已经打好了
 # 游戏本体应该由几个类组成，比如一个类负责地图，一个类负责人物对话，但是这些类由一个大的状态机类管理
 
 if __name__ == "__main__":
     from pprint import pprint
-    _ = styleml_str_to_tokens(r"Oh I have an \anchor[=ap]apple, I have a pen. \chain[=ap]APPLE")
+    _ = styleml_str_to_tokens(r"\def[green||#=s##=l#fg=green#=r#]Oh I have an \anchor[=ap]apple, \exp[green|]I have a pen. \chain[=ap]APPLE")
+    _ = styleml_tokens_expand_macros(_, recursive=True)
+    print(_)
     mlcells = styleml_tokens_to_mlcells(_)
     pprint(mlcells_to_footprints_line_wrap_portal(
         Vector2D(0, 0), mlcells, initial_offset=(0, 2), area=(4, 8),
