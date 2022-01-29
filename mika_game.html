@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/pyodide/v0.19.0/full/pyodide.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+        <style>
+            .game-screen-container {
+                width: 80rem;
+                height: 50rem;
+                font-size: 16pt;
+                white-space: pre-wrap;
+                font-family: monospace;
+                user-select: none;
+            }
+            .game-screen-container div {
+                width: 2rem;
+                height: 2rem;
+                display: inline-block;
+                text-align: center;
+                vertical-align: middle;
+                line-height: 2rem;
+            }
+        </style>
+    </head>
+    <body>
+        Some text.<br>
+        <script type="text/javascript">
+        async function main(){
+            let pyodide = await loadPyodide({
+                indexURL : "https://cdn.jsdelivr.net/pyodide/v0.19.0/full/"
+            });
+            await pyodide.loadPackage("attrs");
+            await pyodide.runPythonAsync(`
+                from pyodide.http import pyfetch
+                response = await pyfetch("mika.py")
+                with open("mika.py", "wb") as f:
+                    f.write(await response.bytes())
+                response = await pyfetch("mika_htmlui.py")
+                with open("mika_htmlui.py", "wb") as f:
+                    f.write(await response.bytes())
+            `)
+            pyodide.runPython(await (await fetch("mika_cat.py")).text());
+        }
+        main();
+        </script>
+        <textarea id="sty-text"></textarea>
+        <button id="show-sty">update</button>
+        <button id="clear-sty">clear</button>
+        <button id="interrupt-sty-animation">interrupt</button>
+    </body>
+</html>

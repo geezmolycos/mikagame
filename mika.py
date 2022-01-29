@@ -554,7 +554,7 @@ def styleml_tokens_expand_macros(tokens, recursive=False):
     return parsed_tokens
     
 
-# TODO: 编写styleml的宏
+# TODO: 编写自定义字符和插入自定义字符的命令
 # TODO: 进行游戏本体设计，因为基础已经打好了
 # 游戏本体应该由几个类组成，比如一个类负责地图，一个类负责人物对话，但是这些类由一个大的状态机类管理
 
