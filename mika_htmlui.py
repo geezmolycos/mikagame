@@ -5,7 +5,7 @@ from js import jQuery as jq
 import js
 from pyodide import create_proxy
 
-from mika import Vector2D, GameScreen, ScreenCell
+from mika_screen import Vector2D, GameScreen, ScreenCell
 
 @attr.s
 class HTMLGameScreen(GameScreen):

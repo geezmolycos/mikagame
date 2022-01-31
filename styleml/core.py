@@ -3,7 +3,7 @@ from string import ascii_letters, digits
 
 import attr
 
-from mika import Vector2D
+from utilities import Vector2D
 
 """
 TODO: 接口化styleml语言：
@@ -82,9 +82,11 @@ class AbsReposToken(ReposToken):
 @attr.s(frozen=True)
 class NewLineToken(ReposToken):
     
+    value = attr.ib(default=1)
+    
     def repos_target(self, original_pos):
         x, y = original_pos
-        return Vector2D(0, y+1)
+        return Vector2D(0, y+self.value)
 
 @attr.s
 class StyleMLCoreParser:
@@ -189,6 +191,8 @@ class ReturnCharExtParser(StyleMLExtParser):
         for t in tokens:
             if isinstance(t, CharacterToken) and t.value == "\n":
                 transformed_tokens.append(NewLineToken())
+            elif isinstance(t, CharacterToken) and t.value == "\r":
+                transformed_tokens.append(ReturnToken())
             else:
                 transformed_tokens.append(t)
         return transformed_tokens

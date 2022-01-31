@@ -1,7 +1,7 @@
 
-from mika import Vector2D, List2D, Cardinal, ScreenCell
-from mika import styleml_str_to_tokens, styleml_tokens_parse_style, styleml_tokens_to_mlcells, mlcells_to_footprints_line_wrap_portal
-from mika import styleml_tokens_parse_animation, styleml_tokens_to_footprint_delays, styleml_tokens_to_portals, styleml_tokens_expand_macros
+from mika_screen import Vector2D, List2D, Cardinal, ScreenCell
+from mika_screen import styleml_str_to_tokens, styleml_tokens_parse_style, styleml_tokens_to_mlcells, mlcells_to_footprints_line_wrap_portal
+from mika_screen import styleml_tokens_parse_animation, styleml_tokens_to_footprint_delays, styleml_tokens_to_portals, styleml_tokens_expand_macros
 from mika_htmlui import HTMLGameScreen
 
 from pyodide import create_proxy

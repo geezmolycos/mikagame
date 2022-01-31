@@ -1,8 +1,8 @@
 
-from mika import Vector2D, List2D, Cardinal, ScreenCell
-from mika import styleml_str_to_tokens, styleml_tokens_parse_style, styleml_tokens_to_mlcells, mlcells_to_footprints_line_wrap_portal
-from mika import styleml_tokens_parse_animation, styleml_tokens_to_footprint_delays, styleml_tokens_to_portals, styleml_tokens_expand_macros
-from mika import str_to_mlcells
+from mika_screen import Vector2D, List2D, Cardinal, ScreenCell
+from mika_screen import styleml_str_to_tokens, styleml_tokens_parse_style, styleml_tokens_to_mlcells, mlcells_to_footprints_line_wrap_portal
+from mika_screen import styleml_tokens_parse_animation, styleml_tokens_to_footprint_delays, styleml_tokens_to_portals, styleml_tokens_expand_macros
+from mika_screen import str_to_mlcells
 from mika_htmlui import HTMLGameScreen
 
 from pyodide import create_proxy
@@ -60,7 +60,7 @@ def _(e):
     next_dialogue()
 jq("#show-sty").on("click", create_proxy(_))
 
-from mika import mlcells_to_footprints
+from mika_screen import mlcells_to_footprints
 scr.print_footprints(mlcells_to_footprints(
     Vector2D(1, 16), str_to_mlcells(
         "\n".join(l.strip().strip(".") for l in """

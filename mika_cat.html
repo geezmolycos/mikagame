@@ -32,8 +32,8 @@
             await pyodide.loadPackage("attrs");
             await pyodide.runPythonAsync(`
                 from pyodide.http import pyfetch
-                response = await pyfetch("mika.py")
-                with open("mika.py", "wb") as f:
+                response = await pyfetch("mika_screen.py")
+                with open("mika_screen.py", "wb") as f:
                     f.write(await response.bytes())
                 response = await pyfetch("mika_htmlui.py")
                 with open("mika_htmlui.py", "wb") as f:
