@@ -220,26 +220,6 @@ class GameScreen:
             for x in range(pos0.x, pos1.x):
                 self.print_cell(Vector2D(x, y), None)
 
-"""
-TODO: 接口化styleml语言：
-styleml语言的各解析阶段和各概念名称
-原文(string) -tokenize->
-tokens -transform->
-tokens -render->
-mlcellstr -place->
-footprints
-
-tokens是若干个Token实例组成的列表，每个Token实例有(类型(type)，)值(value)和元数据(meta)
-mlcellstr代表多行的ScreenCell，每个Cell都有元数据，同时有游标cursor，可以多个串起来
-footprints是包括坐标元数据的mlcellstr
-
-tokenize过程是固定的，将文本转化成StringToken, BracketToken, CommandToken
-transform过程由styleml的各扩展完成，负责解析对应的CommandToken，并为文本添加元数据
-render过程是固定的，但提供为mlcellstr添加元数据的接口
-
-"""
-
-
 def cells_to_footprints(pos, cells, dir=Cardinal.RIGHT):
     footprints = []
     for c in cells:
