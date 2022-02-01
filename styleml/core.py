@@ -91,9 +91,13 @@ class StyleMLCoreParser:
     """
     StyleML的核心解析器
     """
-    command_identifier = ascii_letters + digits + "_"
+    command_identifier = ascii_letters + digits + "_" + "!"
     
     ext_parser = attr.ib(factory=list)
+    
+    def __attrs_post_init__(self):
+        for parser in self.ext_parser:
+            parser.set_core_parser(self)
     
     def tokenize(self, text):
         text_as_rlist = list(reversed(text))
@@ -128,7 +132,7 @@ class StyleMLCoreParser:
                     escaped_text_as_rlist.pop()
                     argument = "".join(argument)
                     meta["argument"] = argument
-                if escaped_text_as_rlist[-1] == " ": # command后可以有一个空格
+                if len(escaped_text_as_rlist) != 0 and escaped_text_as_rlist[-1] == " ": # command后可以有一个空格
                     escaped_text_as_rlist.pop()
                 tokens.append(CommandToken(command, meta))
             elif ch in tuple("{}"):
@@ -174,6 +178,11 @@ class StyleMLCoreParser:
 
 @attr.s
 class StyleMLExtParser:
+    
+    core = attr.ib(default=None)
+    
+    def set_core_parser(self, core):
+        self.core = core
     
     def transformer(self, tokens):
         return tokens

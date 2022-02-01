@@ -1,11 +1,13 @@
 
 import re
 
+null_sentinent = object()
+
 def parse_convenient_obj_repr(s):
     "使用一个标点符号和字符串表示一个简单对象，比如是数字/字符串/真假"
     m = re.match(r"([=#$\+\-?])(.*)", s)
     if not m:
-        return None
+        return null_sentinent
     type, value = m[1], m[2]
     obj = None
     if type == "=":
@@ -34,6 +36,8 @@ def parse_convenient_dict(s, delimiter=",", lower=parse_convenient_pair):
     styles = {}
     for piece in s.split(delimiter):
         key, obj = lower(piece)
+        if obj is null_sentinent: # 如果obj没有内容，则跳过该obj
+            continue
         styles[key] = obj
     return styles
 

@@ -83,6 +83,10 @@ class AnimationExtParser(StyleMLExtParser):
 if __name__ == "__main__":
     from styleml.core import StyleMLCoreParser, ReturnCharExtParser
     from styleml.portal_ext import PortalExtParser
+    from styleml.macro_ext import MacroExtParser
     from pprint import pprint
-    p = StyleMLCoreParser(ext_parser=[PortalExtParser(), AnimationExtParser(), StyleExtParser(), ReturnCharExtParser()])
-    pprint(p.render(p.transform(p.tokenize(r"""\tick[$0.1]Behold\delay[$0.5], here I am!\delay[$1.0]\n The {\s[bg=gray]Most {\s[fg=gold]\tick[$0.4]ALMIGHTY} and {\s[fg=red]\tick[$0.4]POWERFUL}}\n {\s[bg=red]Dragon} in this Kingdom!"""))))
+    p = StyleMLCoreParser(ext_parser=[MacroExtParser(), PortalExtParser(), AnimationExtParser(), StyleExtParser(), ReturnCharExtParser()])
+    #pprint(p.render(p.transform(p.tokenize(r"""\tick[$0.1]Behold\delay[$0.5], here I am!\delay[$1.0]\n The {\s[bg=gray]Most {\s[fg=gold]\tick[$0.4]ALMIGHTY} and {\s[fg=red]\tick[$0.4]POWERFUL}}\n {\s[bg=red]Dragon} in this Kingdom!"""))))
+    pprint(p.render(p.transform(p.tokenize(
+        r"\tick[$0.05]\def[green=\\s\[fg=green\]]Oh I have an \anchor[=ap]apple, I have {\!green a pen}. {\chain[=ap]\s[fg=red,bg=orange]APPLE}"
+    ))))
