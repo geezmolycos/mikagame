@@ -197,9 +197,9 @@ class ReturnCharExtParser(StyleMLExtParser):
         transformed_tokens = []
         for t in tokens:
             if isinstance(t, CharacterToken) and t.value == "\n":
-                transformed_tokens.append(NewLineToken())
+                transformed_tokens.append(NewLineToken(1))
             elif isinstance(t, CharacterToken) and t.value == "\r":
-                transformed_tokens.append(ReturnToken())
+                transformed_tokens.append(NewLineToken(0))
             else:
                 transformed_tokens.append(t)
         return transformed_tokens
