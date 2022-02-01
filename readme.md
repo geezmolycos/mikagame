@@ -8,6 +8,6 @@
 
 ```plaintext
 \tick[$0.1]Behold\delay[$0.5], here I am!\delay[$1.0]
-The {\[bg=gray]Most {\[fg=gold]\tick[$0.4]ALMIGHTY} and {\[fg=red]\tick[$0.4]POWERFUL}}
-{\[bg=red]Dragon} in this Kingdom!
+The {\s[bg=gray]Most {\s[fg=gold]\tick[$0.4]ALMIGHTY} and {\s[fg=red]\tick[$0.4]POWERFUL}}
+{\s[bg=red]Dragon} in this Kingdom!
 ```

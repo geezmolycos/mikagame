@@ -24,7 +24,7 @@ class PortalExtParser(StyleMLExtParser):
         transformed_tokens = []
         for t in tokens:
             if isinstance(t, CommandToken) and t.value in ("n", "r"):
-                amount = parse_convenient_obj_repr(t.meta.get("argument")) or {"n": 1, "r": 0}[t.value]
+                amount = parse_convenient_obj_repr(t.meta.get("argument", "")) or {"n": 1, "r": 0}[t.value]
                 transformed_tokens.append(NewLineToken(amount))
             elif isinstance(t, CommandToken) and t.value in ("anchor", "anchorrm", "chain"):
                 argument = t.meta.get("argument")

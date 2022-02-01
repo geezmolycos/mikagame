@@ -82,8 +82,6 @@ class AbsReposToken(ReposToken):
 @attr.s(frozen=True)
 class NewLineToken(ReposToken):
     
-    value = attr.ib(default=1)
-    
     def repos_target(self, original_pos):
         x, y = original_pos
         return Vector2D(0, y+self.value)
