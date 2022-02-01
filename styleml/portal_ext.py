@@ -2,6 +2,7 @@
 import attr
 
 from .convenient_argument import parse_convenient_obj_repr, parse_convenient_list
+from .core import StyleMLExtParser
 from .core import CharacterToken, BracketToken, CommandToken
 from .core import AnchorToken, AnchorRemoveToken, ChainToken, NewLineToken, RelReposToken, AbsReposToken
 

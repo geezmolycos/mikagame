@@ -162,7 +162,7 @@ class StyleMLCoreParser:
             elif isinstance(rendered_t, AnchorRemoveToken):
                 current_anchors.pop(rendered_t.value)
             elif isinstance(rendered_t, ChainToken):
-                current_pos = current_anchors.get(rendered_t.value) or Vector2D(0, 0)
+                current_pos = current_anchors.get(rendered_t.value).meta["pos"] or Vector2D(0, 0)
             if t.occupy_cell:
                 current_pos += Vector2D(1, 0)
         return rendered_tokens
