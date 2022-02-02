@@ -3,7 +3,7 @@ from string import ascii_letters, digits
 
 import attr
 
-from utilities import Vector2D
+from utilities import Vector2D, list_split, list_join
 
 """
 TODO: 接口化styleml语言：
@@ -27,16 +27,16 @@ render过程由某个Renderer完成，扩展可以在render过程中添加元数
 class Token:
     value = attr.ib(default=None)
     meta = attr.ib(factory=dict)
-    occupy_cell = False
+    printable = False
 
 @attr.s(frozen=True)
 class CharacterToken(Token):
-    occupy_cell = True
+    printable = True
 
 @attr.s(frozen=True)
 class BracketToken(Token):
     
-    occupy_cell = False
+    printable = False
     
     def is_left(self):
         return self.value == "{"
@@ -46,23 +46,23 @@ class BracketToken(Token):
     
 @attr.s(frozen=True)
 class CommandToken(Token):
-    occupy_cell = False
+    printable = False
 
 @attr.s(frozen=True)
 class AnchorToken(Token):
-    occupy_cell = False
+    printable = False
 
 @attr.s(frozen=True)
 class AnchorRemoveToken(Token):
-    occupy_cell = False
+    printable = False
 
 @attr.s(frozen=True)
 class ChainToken(Token):
-    occupy_cell = False
+    printable = False
 
 @attr.s(frozen=True)
 class ReposToken(Token):
-    occupy_cell = False
+    printable = False
     
     def repos_target(self, original_pos):
         raise NotImplementedError()
@@ -100,40 +100,66 @@ class StyleMLCoreParser:
             parser.set_core_parser(self)
     
     def tokenize(self, text):
+        # 处理转义符
         text_as_rlist = list(reversed(text))
-        escaped_text_as_rlist = []
+        escaped_text_as_list = []
         while len(text_as_rlist) != 0:
             ch = text_as_rlist.pop()
             try:
                 escape = text_as_rlist[-1]
             except IndexError:
                 escape = ""
-            if ch == "\\" and escape in tuple("\\[]{}"): # 处理转义字符
+            if ch == "\\" and escape in tuple("\\[]{}@#"): # 处理转义字符
                 text_as_rlist.pop()
-                escaped_text_as_rlist.append(ch + escape)
+                escaped_text_as_list.append(ch + escape)
+            elif ch == "\\" and escape == "\n": # 换行符转义，不换行
+                text_as_rlist.pop() # 什么也不添加
             else:
-                escaped_text_as_rlist.append(ch)
-        escaped_text_as_rlist.reverse()
+                escaped_text_as_list.append(ch)
         
+        # 处理行首开始符(@)和注释符(#)
+        trimmed_text_as_rlist = []
+        for line in list_split(escaped_text_as_list, "\n"):
+            leading, *rest = list_split(line, "@")
+            if not rest: # 没行首开始符
+                leading.reverse()
+                try:
+                    while (ch := leading.pop()) == " ": # 去除前导空格
+                        pass
+                    leading.append(ch) # 把去多的加回来
+                except IndexError:
+                    pass # 整行都是空格，pop完了
+                leading.reverse()
+                line = leading
+            else:
+                rest = list_join(rest, "@")
+                line = rest
+            # 注释符
+            leading, *rest = list_split(line, "#")
+            trimmed_text_as_rlist.append(leading)
+        trimmed_text_as_rlist = list_join(trimmed_text_as_rlist, "\n")
+        trimmed_text_as_rlist.reverse()
+        
+        # 解析tokens
         tokens = []
-        while len(escaped_text_as_rlist) != 0:
-            ch = escaped_text_as_rlist.pop()
+        while len(trimmed_text_as_rlist) != 0:
+            ch = trimmed_text_as_rlist.pop()
             if ch == "\\": # command
                 command = []
-                while escaped_text_as_rlist[-1] in self.command_identifier:
-                    command.append(escaped_text_as_rlist.pop())
+                while trimmed_text_as_rlist[-1] in self.command_identifier:
+                    command.append(trimmed_text_as_rlist.pop())
                 command = "".join(command)
                 meta = {}
-                if escaped_text_as_rlist[-1] == "[":
-                    escaped_text_as_rlist.pop()
+                if trimmed_text_as_rlist[-1] == "[":
+                    trimmed_text_as_rlist.pop()
                     argument = []
-                    while escaped_text_as_rlist[-1] != "]":
-                        argument.append(escaped_text_as_rlist.pop()[-1]) # 可能有转义序列
-                    escaped_text_as_rlist.pop()
+                    while trimmed_text_as_rlist[-1] != "]":
+                        argument.append(trimmed_text_as_rlist.pop()[-1]) # 可能有转义序列
+                    trimmed_text_as_rlist.pop()
                     argument = "".join(argument)
                     meta["argument"] = argument
-                if len(escaped_text_as_rlist) != 0 and escaped_text_as_rlist[-1] == " ": # command后可以有一个空格
-                    escaped_text_as_rlist.pop()
+                if len(trimmed_text_as_rlist) != 0 and trimmed_text_as_rlist[-1] == " ": # command后可以有一个空格
+                    trimmed_text_as_rlist.pop()
                 tokens.append(CommandToken(command, meta))
             elif ch in tuple("{}"):
                 tokens.append(BracketToken(ch))
@@ -149,7 +175,7 @@ class StyleMLCoreParser:
 
     def renderer(self, tokens):
         """
-        支持的Token类型：occupy_cell的，Anchor, Chain, Repos
+        支持的Token类型：printable的，Anchor, Chain, Repos
         """
         rendered_tokens = []
         current_pos = Vector2D(0, 0)
@@ -165,7 +191,7 @@ class StyleMLCoreParser:
                 current_anchors.pop(rendered_t.value)
             elif isinstance(rendered_t, ChainToken):
                 current_pos = current_anchors.get(rendered_t.value).meta["pos"] or Vector2D(0, 0)
-            if t.occupy_cell:
+            if t.printable:
                 current_pos += Vector2D(1, 0)
         return rendered_tokens
         

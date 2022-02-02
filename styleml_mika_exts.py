@@ -4,6 +4,7 @@ import attr
 from styleml.core import StyleMLExtParser
 from styleml.core import Token, CharacterToken, BracketToken, CommandToken
 from styleml.convenient_argument import parse_convenient_dict, parse_convenient_obj_repr
+from utilities import Vector2D, Cardinal
 
 @attr.s
 class StyleExtParser(StyleMLExtParser):
@@ -79,14 +80,56 @@ class AnimationExtParser(StyleMLExtParser):
                 transformed_tokens.append(t)
         return transformed_tokens
 
+@attr.s
+class LineWrapExtParser(StyleMLExtParser):
+    
+    cr_area = attr.ib(default=Vector2D(0, 0)) # 0 代表无限制
+    only_printable = attr.ib(default=True)
+    
+    @property
+    def columns(self):
+        return self.cr_area.x
+    
+    @property
+    def rows(self):
+        return self.cr_area.y
+    
+    def post_renderer(self, tokens):
+        columns_for_row = {} # 先确定每行的长度
+        total_row_amount = 0 # 和一共多少行
+        for t in tokens:
+            if self.only_printable and not t.printable:
+                continue
+            x, y = t.meta["pos"]
+            columns_for_row[y] = max(columns_for_row.get(y, 0), x)
+            total_row_amount = max(total_row_amount, y)
+        total_row_amount += 1
+        wrapped_row = {} # 再算出wrap前对应wrap后的行号
+        accumulated_rows = 0
+        for i in range(total_row_amount):
+            wrapped_row[i] = accumulated_rows
+            length = columns_for_row.get(i, 0)
+            split_into = (length // self.columns if self.columns else 0) + 1
+            accumulated_rows += split_into
+        transformed_tokens = []
+        for t in tokens:
+            x, y = t.meta["pos"]
+            row = wrapped_row[y] + (x // self.columns if self.columns else 0)
+            col = x % self.columns if self.columns else x
+            t = attr.evolve(t, meta=(t.meta | {"wrapped_pos": Vector2D(col, row)}))
+            transformed_tokens.append(t)
+        return transformed_tokens
 
 if __name__ == "__main__":
     from styleml.core import StyleMLCoreParser, ReturnCharExtParser
     from styleml.portal_ext import PortalExtParser
     from styleml.macro_ext import MacroExtParser
     from pprint import pprint
-    p = StyleMLCoreParser(ext_parser=[MacroExtParser(), PortalExtParser(), AnimationExtParser(), StyleExtParser(), ReturnCharExtParser()])
+    p = StyleMLCoreParser(ext_parser=[MacroExtParser(), PortalExtParser(), AnimationExtParser(), StyleExtParser(), ReturnCharExtParser(), LineWrapExtParser(cr_area=Vector2D(5, 0))])
     #pprint(p.render(p.transform(p.tokenize(r"""\tick[$0.1]Behold\delay[$0.5], here I am!\delay[$1.0]\n The {\s[bg=gray]Most {\s[fg=gold]\tick[$0.4]ALMIGHTY} and {\s[fg=red]\tick[$0.4]POWERFUL}}\n {\s[bg=red]Dragon} in this Kingdom!"""))))
-    pprint(p.render(p.transform(p.tokenize(
-        r"\tick[$0.05]\def[green=\\s\[fg=green\]]Oh I have an \anchor[=ap]apple, I have {\!green a pen}. {\chain[=ap]\s[fg=red,bg=orange]APPLE}"
-    ))))
+    # pprint(p.render(p.transform(p.tokenize(
+    #     r"\tick[$0.05]\def[green=\\s\[fg=green\]]Oh I have an \anchor[=ap]apple, I have {\!green a pen}. {\chain[=ap]\s[fg=red,bg=orange]APPLE}"
+    # ))))
+    pprint(p.render(p.transform(p.tokenize(r"""\
+                                            ok!#123\
+                                            """))))

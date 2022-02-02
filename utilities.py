@@ -131,3 +131,26 @@ class List2D:
         new = type(self)(self.dim)
         new.l = self.l.copy()
         return new
+
+
+def list_split(l, sep):
+    l = iter(l)
+    splitted = []
+    while True:
+        sub = []
+        try:
+            while (item := next(l)) != sep:
+                sub.append(item)
+        except StopIteration:
+            break
+        finally:
+            splitted.append(sub)
+    return splitted
+
+def list_join(l, sep):
+    joined = l[0]
+    for sub in l[1:]:
+        joined.append(sep)
+        joined.extend(sub)
+    return joined
+    
