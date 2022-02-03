@@ -6,6 +6,8 @@ from styleml.core import Token, CharacterToken, BracketToken, CommandToken
 from styleml.convenient_argument import parse_convenient_dict, parse_convenient_obj_repr
 from utilities import Vector2D, Cardinal
 
+from mika_screen import ScreenCell
+
 @attr.s
 class StyleExtParser(StyleMLExtParser):
     
@@ -116,6 +118,8 @@ class LineWrapExtParser(StyleMLExtParser):
             x, y = t.meta["pos"]
             row = wrapped_row[y] + (x // self.columns if self.columns else 0)
             col = x % self.columns if self.columns else x
+            if self.rows != 0 and row >= self.rows:
+                continue # 超出界限了
             t = attr.evolve(t, meta=(t.meta | {"wrapped_pos": Vector2D(col, row)}))
             transformed_tokens.append(t)
         return transformed_tokens

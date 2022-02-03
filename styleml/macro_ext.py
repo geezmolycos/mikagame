@@ -19,7 +19,7 @@ class MacroExtParser(StyleMLExtParser):
     """
     initial_macros = attr.ib(factory=dict)
     
-    def transformer(self, tokens, initial_macros=None):
+    def expand_and_get_defined_macros(self, tokens, initial_macros=None):
         if initial_macros is None:
             initial_macros = self.initial_macros
         current_macros = initial_macros.copy()
@@ -39,9 +39,13 @@ class MacroExtParser(StyleMLExtParser):
                 expanded_text = re.sub(r"#(.*?)#", lambda match: macro_arguments.get(match[1], ""), macro_template)
                 expanded_tokens = self.core.tokenize(expanded_text)
                 # recursive expansion
-                recursive_expanded_tokens = self.transformer(expanded_tokens, initial_macros=current_macros)
+                recursive_expanded_tokens, inner_macros = self.expand_and_get_defined_macros(expanded_tokens, initial_macros=current_macros)
                 transformed_tokens.extend(recursive_expanded_tokens)
+                current_macros.update(inner_macros)
             else:
                 transformed_tokens.append(t)
-        return transformed_tokens
+        return transformed_tokens, current_macros
+    
+    def transformer(self, tokens):
+        return self.expand_and_get_defined_macros(tokens, initial_macros=None)[0]
     

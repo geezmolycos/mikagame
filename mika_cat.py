@@ -1,8 +1,11 @@
 
 from mika_screen import Vector2D, List2D, Cardinal, ScreenCell
-from mika_screen import styleml_str_to_tokens, styleml_tokens_parse_style, styleml_tokens_to_mlcells, mlcells_to_footprints_line_wrap_portal
-from mika_screen import styleml_tokens_parse_animation, styleml_tokens_to_footprint_delays, styleml_tokens_to_portals, styleml_tokens_expand_macros
 from mika_htmlui import HTMLGameScreen
+
+from styleml.core import StyleMLCoreParser, ReturnCharExtParser
+from styleml.portal_ext import PortalExtParser
+from styleml.macro_ext import MacroExtParser
+from styleml_mika_exts import StyleExtParser, AnimationExtParser, LineWrapExtParser
 
 from pyodide import create_proxy
 from js import jQuery as jq
@@ -10,6 +13,17 @@ from js import jQuery as jq
 import asyncio
 
 htmlui = HTMLGameScreen()
+
+styleml_parser = StyleMLCoreParser(
+    ext_parser=[
+        MacroExtParser(),
+        PortalExtParser(),
+        AnimationExtParser(),
+        StyleExtParser(),
+        ReturnCharExtParser(),
+        LineWrapExtParser(cr_area=Vector2D(20, 0))
+        ]
+    )
 
 jq("body").append(htmlui.jq_cont)
 
@@ -43,15 +57,12 @@ next_animation_id = 0
 
 def _(e):
     s = jq("#sty-text").val()
-    tokens = styleml_str_to_tokens(s)
-    tokens = styleml_tokens_expand_macros(tokens, recursive=True)
-    tokens = styleml_tokens_parse_style(tokens)
-    tokens = styleml_tokens_parse_animation(tokens)
-    delays = styleml_tokens_to_footprint_delays(tokens)
-    portals = styleml_tokens_to_portals(tokens)
-    cells_list = styleml_tokens_to_mlcells(tokens)
-    footprints = mlcells_to_footprints_line_wrap_portal(
-        Vector2D(0, 0), cells_list, area=(25, 10), portals=portals)
+    tokens = styleml_parser.render(styleml_parser.transform(styleml_parser.tokenize(
+        s
+    )))
+    print(styleml_parser.render(styleml_parser.transform(styleml_parser.tokenize(
+        s
+    ))))
     #htmlui.scr.print_footprints(footprints)
     
     global next_animation_id
@@ -60,7 +71,7 @@ def _(e):
     interrupt_events[current_animation_id] = interrupt_event
     next_animation_id += 1
     async def _():
-        await htmlui.async_print_footprints(footprints, delays, interrupt_event)
+        await htmlui.async_print_tokens(tokens, interruption_event=interrupt_event)
         interrupt_events.pop(current_animation_id)
     asyncio.create_task(_())
     # htmlui.screen_update(jq_cont)

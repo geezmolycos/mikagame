@@ -4,6 +4,7 @@ import asyncio
 
 import attr
 
+from styleml.core import CharacterToken
 from utilities import Vector2D, Cardinal, List2D, grouper
 
 @attr.s(frozen=True)
@@ -27,39 +28,44 @@ class GameScreen:
 
     def get_display_cell(self, pos):
         c = self.map[pos]
-        if c is None:
-            c = ScreenCell()
+        c = c or ScreenCell()
         return c
 
     def print_cell(self, pos, cell):
         self.map[pos] = cell
     
-    def print_footprints(self, footprints):
-        for pos, cell in footprints:
-            self.print_cell(pos, cell)
+    def print_token(self, t):
+        if isinstance(t, CharacterToken):
+            style = t.meta.get("style") or {}
+            pos = t.meta.get("wrapped_pos") or t.meta.get("pos")
+            self.print_cell(pos, ScreenCell(t.value, **style))
     
-    def paint_cell(self, pos, styles):
-        c = attr.evolve(self.map[pos] or ScreenCell(), **styles)
+    def print_tokens(self, tokens):
+        for t in tokens:
+            self.print_token(t)
+    
+    def paint_cell(self, pos, style):
+        c = attr.evolve(self.map[pos] or ScreenCell(), **style)
         self.map[pos] = c
 
-    def paint_rectangle(self, pos0, pos1, styles):
+    def paint_rectangle(self, pos0, pos1, style):
         for y in range(pos0.y, pos1.y):
             for x in range(pos0.x, pos1.x):
-                self.paint_cell(Vector2D(x, y), styles)
+                self.paint_cell(Vector2D(x, y), style)
     
-    async def async_print_footprints(self, footprints, pre_delays, interruption_event=None, start_from=0):
-        footprints = footprints[start_from:]
-        pre_delays = pre_delays[start_from:]
-        for i, (pos, cell), pre_delay in zip(count(0), footprints, pre_delays):
-            if pre_delay != 0:
+    async def async_print_tokens(self, tokens, interruption_event=None, start_from=0):
+        tokens = tokens[start_from:]
+        for i, t in enumerate(tokens):
+            post_delay = t.meta.get("post_delay", 0)
+            self.print_token(t)
+            if post_delay != 0:
                 done, pending = await asyncio.wait([
-                    asyncio.sleep(pre_delay),
+                    asyncio.sleep(post_delay),
                     (interruption_event or asyncio.Event()).wait(),
-                    ], return_when=asyncio.FIRST_COMPLETED)
+                ], return_when=asyncio.FIRST_COMPLETED) # 保证中断事件触发时立刻中断
                 if interruption_event.is_set():
                     return i
                 list(pending)[0].cancel() # 一定是interruption_event
-            self.print_cell(pos, cell)
         return i
     
     def clear_screen(self):
@@ -99,13 +105,5 @@ def str_to_mlcells(s, template=None):
 # 游戏本体应该由几个类组成，比如一个类负责地图，一个类负责人物对话，但是这些类由一个大的状态机类管理
 
 if __name__ == "__main__":
-    from pprint import pprint
-    _ = styleml_str_to_tokens(r"\def[green||#=s##=l#fg=green#=r#]Oh I have an \anchor[=ap]apple, \exp[green|]I have a pen. \chain[=ap]APPLE")
-    _ = styleml_tokens_expand_macros(_, recursive=True)
-    print(_)
-    mlcells = styleml_tokens_to_mlcells(_)
-    pprint(mlcells_to_footprints_line_wrap_portal(
-        Vector2D(0, 0), mlcells, initial_offset=(0, 2), area=(4, 8),
-        portals=styleml_tokens_to_portals(_)
-        ))
+    pass
 

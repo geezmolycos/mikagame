@@ -83,5 +83,5 @@ class HTMLGameScreen(GameScreen):
             self.screen_refresh_jq_cell(cell, jq_cell)
     
     def screen_refresh_pos(self, pos):
-        jq_cell = jq(self.jq_cont.children()[pos.y*40 + pos.x]) # 暂时hardcode
+        jq_cell = jq(self.jq_cont.children()[pos.y*self.dim.x + pos.x])
         self.screen_refresh_jq_cell(self.map[pos], jq_cell)
