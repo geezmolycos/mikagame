@@ -12,8 +12,8 @@ class MacroExtParser(StyleMLExtParser):
     r"""
     定义宏的命令如：\def[宏名=宏内容]
     宏内容中有可能出现的特殊字符，包括"\", "[", "]"，已经在解析成token的时候解析好了
-    参数用#名字#表示
-    而"#"本身用##表示
+    参数用%名字%表示
+    而"%"本身用%%表示
     消除宏的命令：\undef[宏名]
     调用宏的命令如：\!宏名[参数]
     """
@@ -35,8 +35,8 @@ class MacroExtParser(StyleMLExtParser):
                 macro_name = t.value[1:]
                 macro_arguments = parse_convenient_dict(t.meta.get("argument", ""))
                 macro_template = current_macros[macro_name]
-                macro_arguments.update({"": "#"})
-                expanded_text = re.sub(r"#(.*?)#", lambda match: macro_arguments.get(match[1], ""), macro_template)
+                macro_arguments.update({"": "%"})
+                expanded_text = re.sub(r"%(.*?)%", lambda match: macro_arguments.get(match[1], ""), macro_template)
                 expanded_tokens = self.core.tokenize(expanded_text)
                 # recursive expansion
                 recursive_expanded_tokens, inner_macros = self.expand_and_get_defined_macros(expanded_tokens, initial_macros=current_macros)

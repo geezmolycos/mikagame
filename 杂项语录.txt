@@ -3,3 +3,11 @@ The {\s[bg=gray]Most {\s[fg=gold]\tick[$0.4]ALMIGHTY} and {\s[fg=red]\tick[$0.4]
 {\s[bg=red]Dragon} in this Kingdom!
 
 \tick[$0.05]\def[green=\\s\[fg=green\]]Oh I have an \anchor[=ap]apple, I have {\!green a pen}. {\chain[=ap]\s[fg=red,bg=orange]APPLE}
+
+
+\def[set=\\def\[a=#a#\]]\
+\!set[a=1]\
+this is \!a
+\!a is 1
+\!set[a=2]\
+\!a is 2

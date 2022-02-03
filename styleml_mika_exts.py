@@ -134,6 +134,13 @@ if __name__ == "__main__":
     # pprint(p.render(p.transform(p.tokenize(
     #     r"\tick[$0.05]\def[green=\\s\[fg=green\]]Oh I have an \anchor[=ap]apple, I have {\!green a pen}. {\chain[=ap]\s[fg=red,bg=orange]APPLE}"
     # ))))
-    pprint(p.render(p.transform(p.tokenize(r"""\
-                                            ok!#123\
-                                            """))))
+    pprint(p.render(p.transform(p.tokenize(
+        r"""
+\def[set=\\def\[a=%a%\]]\
+\!set[a=1]\
+this is \!a
+\!a  is 1
+\!set[a=2]\
+\!a  is 2
+        """
+    ))))
