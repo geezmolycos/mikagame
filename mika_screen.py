@@ -34,15 +34,15 @@ class GameScreen:
     def print_cell(self, pos, cell):
         self.map[pos] = cell
     
-    def print_token(self, t):
+    def print_token(self, t, origin, mati=Vector2D(1, 0), matj=Vector2D(0, 1)):
         if isinstance(t, CharacterToken):
             style = t.meta.get("style") or {}
-            pos = t.meta.get("wrapped_pos") or t.meta.get("pos")
+            pos = t.meta.get("pos").affine_transform(mati, matj, origin)
             self.print_cell(pos, ScreenCell(t.value, **style))
     
-    def print_tokens(self, tokens):
+    def print_tokens(self, tokens, origin, mati=Vector2D(1, 0), matj=Vector2D(0, 1)):
         for t in tokens:
-            self.print_token(t)
+            self.print_token(t, origin, mati, matj)
     
     def paint_cell(self, pos, style):
         c = attr.evolve(self.map[pos] or ScreenCell(), **style)
@@ -53,11 +53,11 @@ class GameScreen:
             for x in range(pos0.x, pos1.x):
                 self.paint_cell(Vector2D(x, y), style)
     
-    async def async_print_tokens(self, tokens, interruption_event=None, start_from=0):
+    async def async_print_tokens(self, tokens, origin, mati=Vector2D(1, 0), matj=Vector2D(0, 1), interruption_event=None, start_from=0):
         tokens = tokens[start_from:]
         for i, t in enumerate(tokens):
             post_delay = t.meta.get("post_delay", 0)
-            self.print_token(t)
+            self.print_token(t, origin, mati, matj)
             if post_delay != 0:
                 done, pending = await asyncio.wait([
                     asyncio.sleep(post_delay),

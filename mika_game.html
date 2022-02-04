@@ -32,12 +32,19 @@
             await pyodide.loadPackage("attrs");
             await pyodide.runPythonAsync(`
                 from pyodide.http import pyfetch
-                response = await pyfetch("mika_screen.py")
-                with open("mika_screen.py", "wb") as f:
-                    f.write(await response.bytes())
-                response = await pyfetch("mika_htmlui.py")
-                with open("mika_htmlui.py", "wb") as f:
-                    f.write(await response.bytes())
+                from asyncio import gather
+                from os import mkdir
+                async def fetch_py(filename):
+                    print(f"fetching py file {filename}")
+                    response = await pyfetch(filename)
+                    with open(filename, "wb") as f:
+                        f.write(await response.bytes())
+                
+                mkdir("styleml")
+                py_files = "mika_screen.py, mika_htmlui.py, styleml_mika_exts.py, utilities.py, ./styleml/convenient_argument.py, ./styleml/core.py, ./styleml/macro_ext.py, ./styleml/portal_ext.py"
+                py_files = py_files.split(", ")
+                await gather(*[fetch_py(fn) for fn in py_files])
+
             `)
             pyodide.runPython(await (await fetch("mika_dialogue_demo.py")).text());
         }

@@ -120,7 +120,25 @@ class LineWrapExtParser(StyleMLExtParser):
             col = x % self.columns if self.columns else x
             if self.rows != 0 and row >= self.rows:
                 continue # 超出界限了
-            t = attr.evolve(t, meta=(t.meta | {"wrapped_pos": Vector2D(col, row)}))
+            t = attr.evolve(t, meta=(t.meta | {"pos": Vector2D(col, row)}))
+            transformed_tokens.append(t)
+        return transformed_tokens
+
+@attr.s
+class AffineTransformExtParser:
+    origin = attr.ib(default=Vector2D(0, 0))
+    row_grow = attr.ib(default=Vector2D(1, 0))
+    col_grow = attr.ib(default=Vector2D(0, 1))
+    
+    def post_renderer(self, tokens):
+        transformed_tokens = []
+        for t in tokens:
+            if pos := t.meta.get("pos"):
+                t = attr.evolve(
+                    t, meta=(
+                        t.meta | {"pos": pos.affine_transform(self.row_grow, self.col_grow, self.origin)}
+                        )
+                    )
             transformed_tokens.append(t)
         return transformed_tokens
 

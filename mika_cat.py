@@ -60,9 +60,6 @@ def _(e):
     tokens = styleml_parser.render(styleml_parser.transform(styleml_parser.tokenize(
         s
     )))
-    print(styleml_parser.render(styleml_parser.transform(styleml_parser.tokenize(
-        s
-    ))))
     #htmlui.scr.print_footprints(footprints)
     
     global next_animation_id

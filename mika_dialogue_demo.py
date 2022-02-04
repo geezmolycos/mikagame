@@ -1,9 +1,12 @@
 
 from mika_screen import Vector2D, List2D, Cardinal, ScreenCell
-from mika_screen import styleml_str_to_tokens, styleml_tokens_parse_style, styleml_tokens_to_mlcells, mlcells_to_footprints_line_wrap_portal
-from mika_screen import styleml_tokens_parse_animation, styleml_tokens_to_footprint_delays, styleml_tokens_to_portals, styleml_tokens_expand_macros
 from mika_screen import str_to_mlcells
 from mika_htmlui import HTMLGameScreen
+
+from styleml.core import StyleMLCoreParser, ReturnCharExtParser
+from styleml.portal_ext import PortalExtParser
+from styleml.macro_ext import MacroExtParser
+from styleml_mika_exts import StyleExtParser, AnimationExtParser, LineWrapExtParser
 
 from pyodide import create_proxy
 from js import jQuery as jq
@@ -11,6 +14,17 @@ from js import jQuery as jq
 import asyncio
 
 scr = HTMLGameScreen()
+
+styleml_parser = StyleMLCoreParser(
+    ext_parser=[
+        MacroExtParser(),
+        PortalExtParser(),
+        AnimationExtParser(initial_tick=0.1),
+        StyleExtParser(initial_style=dict(bg="white", fg="black")),
+        ReturnCharExtParser(),
+        LineWrapExtParser(cr_area=Vector2D(20, 0))
+        ]
+    )
 
 jq("body").append(scr.jq_cont)
 
@@ -21,7 +35,10 @@ dialogue_frame_dr = Vector2D(dialogue_frame_pos.x + dialogue_frame_area[1], dial
 dialogues = [
     "我哭！",
     "我觉得真好！",
-    "今天是个好日子。",
+    r"""\def[goto=\\anchor\[resume\]\\chain\[%c%\]]\
+\def[back=\\chain\[resume\]]\
+\tick[$0.05]今天是个好\anchor[typo]热字
+\tickm[$2]我说错了。\!goto[c=typo]日子\!back 已经改好了""",
     r"心想的事儿都能成。\n{\tick[$0.5]...}\delay[$1]\n能成吗?".replace(r"\n", "\n")
 ]
 
@@ -31,17 +48,10 @@ def clear_dialogue():
             scr.print_cell(Vector2D(x, y), ScreenCell(fg="black", bg="white"))
 
 def print_dialogue(text, interruption_event):
-    tokens = styleml_str_to_tokens(text)
-    tokens = styleml_tokens_expand_macros(tokens, recursive=True)
-    tokens = styleml_tokens_parse_style(tokens, initial_template=ScreenCell(fg="black", bg="white"))
-    tokens = styleml_tokens_parse_animation(tokens, default_delay=0.05)
-    delays = styleml_tokens_to_footprint_delays(tokens)
-    portals = styleml_tokens_to_portals(tokens)
-    cells_list = styleml_tokens_to_mlcells(tokens)
-    footprints = mlcells_to_footprints_line_wrap_portal(
-        dialogue_frame_pos, cells_list, area=dialogue_frame_area, portals=portals)
-    
-    asyncio.create_task(scr.async_print_footprints(footprints, delays, interruption_event=interruption_event))
+    tokens = styleml_parser.render(styleml_parser.transform(styleml_parser.tokenize(
+        text
+    )))
+    asyncio.create_task(scr.async_print_tokens(tokens, dialogue_frame_pos, interruption_event=interruption_event))
 
 dialogue_number = 0
 interruption_event = asyncio.Event()
@@ -59,15 +69,3 @@ def _(e):
     s = jq("#sty-text").val()
     next_dialogue()
 jq("#show-sty").on("click", create_proxy(_))
-
-from mika_screen import mlcells_to_footprints
-scr.print_footprints(mlcells_to_footprints(
-    Vector2D(1, 16), str_to_mlcells(
-        "\n".join(l.strip().strip(".") for l in """
-        . ______
-        .( o  o )
-        . |  U |
-        . | -- |
-        . ======
-        """.strip().split("\n")),
-    )))

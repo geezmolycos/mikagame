@@ -5,9 +5,15 @@ The {\s[bg=gray]Most {\s[fg=gold]\tick[$0.4]ALMIGHTY} and {\s[fg=red]\tick[$0.4]
 \tick[$0.05]\def[green=\\s\[fg=green\]]Oh I have an \anchor[=ap]apple, I have {\!green a pen}. {\chain[=ap]\s[fg=red,bg=orange]APPLE}
 
 
-\def[set=\\def\[a=#a#\]]\
+\def[set=\\def\[a=%a%\]]\
 \!set[a=1]\
 this is \!a
 \!a is 1
 \!set[a=2]\
 \!a is 2
+
+\def[goto=\\anchor\[resume\]\\chain\[%c%\]]
+\def[back=\\chain\[resume\]]
+\tick[$0.05]今天是个好\anchor[typo]热字
+\tickm[$2]我说错了。\!goto[c=typo]日子\!back 已经改好了
+
