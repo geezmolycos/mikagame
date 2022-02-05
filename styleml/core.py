@@ -99,7 +99,8 @@ class StyleMLCoreParser:
         for parser in self.ext_parser:
             parser.set_core_parser(self)
     
-    def tokenize(self, text):
+    @classmethod
+    def tokenize(cls, text):
         # 处理转义符
         text_as_rlist = list(reversed(text))
         escaped_text_as_list = []
@@ -146,7 +147,7 @@ class StyleMLCoreParser:
             ch = trimmed_text_as_rlist.pop()
             if ch == "\\": # command
                 command = []
-                while trimmed_text_as_rlist[-1] in self.command_identifier:
+                while trimmed_text_as_rlist[-1] in cls.command_identifier:
                     command.append(trimmed_text_as_rlist.pop())
                 command = "".join(command)
                 meta = {}

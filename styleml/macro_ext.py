@@ -16,6 +16,8 @@ class MacroExtParser(StyleMLExtParser):
     而"%"本身用%%表示
     消除宏的命令：\undef[宏名]
     调用宏的命令如：\!宏名[参数]
+    命令参数和命令不能嵌套，因此，if/else以基于宏的方式实现
+    \ifelse[a=a,b=b,then=c,else=d] -> c if a == b else d，其中a,b,c,d均为宏的名字
     """
     initial_macros = attr.ib(factory=dict)
     
@@ -42,10 +44,25 @@ class MacroExtParser(StyleMLExtParser):
                 recursive_expanded_tokens, inner_macros = self.expand_and_get_defined_macros(expanded_tokens, initial_macros=current_macros)
                 transformed_tokens.extend(recursive_expanded_tokens)
                 current_macros.update(inner_macros)
+            elif isinstance(t, CommandToken) and t.value == "ifelse":
+                arguments = parse_convenient_dict(t.meta.get("argument", ""))
+                a, b = arguments.get("a"), arguments.get("b")
+                exp_then, exp_else = arguments.get("then"), arguments.get("else")
+                exp = None
+                if a and b:
+                    a_exp, b_exp = current_macros[a], current_macros[b]
+                    if a_exp == b_exp:
+                        exp = current_macros.get(exp_then)
+                    else:
+                        exp = current_macros.get(exp_else)
+                if exp:
+                    expanded_tokens = self.core.tokenize(exp)
+                    recursive_expanded_tokens, inner_macros = self.expand_and_get_defined_macros(expanded_tokens, initial_macros=current_macros)
+                    transformed_tokens.extend(recursive_expanded_tokens)
+                    current_macros.update(inner_macros)
             else:
                 transformed_tokens.append(t)
         return transformed_tokens, current_macros
     
     def transformer(self, tokens):
         return self.expand_and_get_defined_macros(tokens, initial_macros=None)[0]
-    

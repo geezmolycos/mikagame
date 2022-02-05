@@ -63,7 +63,7 @@ class GameScreen:
                     asyncio.sleep(post_delay),
                     (interruption_event or asyncio.Event()).wait(),
                 ], return_when=asyncio.FIRST_COMPLETED) # 保证中断事件触发时立刻中断
-                if interruption_event.is_set():
+                if interruption_event and interruption_event.is_set():
                     return i
                 list(pending)[0].cancel() # 一定是interruption_event
         return i
