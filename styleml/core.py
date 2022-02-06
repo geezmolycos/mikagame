@@ -147,18 +147,24 @@ class StyleMLCoreParser:
             ch = trimmed_text_as_rlist.pop()
             if ch == "\\": # command
                 command = []
-                while trimmed_text_as_rlist[-1] in cls.command_identifier:
-                    command.append(trimmed_text_as_rlist.pop())
+                try:
+                    while trimmed_text_as_rlist[-1] in cls.command_identifier:
+                        command.append(trimmed_text_as_rlist.pop())
+                except IndexError: # 防止文本最后出现命令的情况
+                    pass
                 command = "".join(command)
                 meta = {}
-                if trimmed_text_as_rlist[-1] == "[":
-                    trimmed_text_as_rlist.pop()
-                    argument = []
-                    while trimmed_text_as_rlist[-1] != "]":
-                        argument.append(trimmed_text_as_rlist.pop()[-1]) # 可能有转义序列
-                    trimmed_text_as_rlist.pop()
-                    argument = "".join(argument)
-                    meta["argument"] = argument
+                try:
+                    if trimmed_text_as_rlist[-1] == "[":
+                        trimmed_text_as_rlist.pop()
+                        argument = []
+                        while trimmed_text_as_rlist[-1] != "]":
+                            argument.append(trimmed_text_as_rlist.pop()[-1]) # 可能有转义序列
+                        trimmed_text_as_rlist.pop()
+                        argument = "".join(argument)
+                        meta["argument"] = argument
+                except IndexError: # 防止文本最后出现无参数的命令
+                    pass
                 if len(trimmed_text_as_rlist) != 0 and trimmed_text_as_rlist[-1] == " ": # command后可以有一个空格
                     trimmed_text_as_rlist.pop()
                 tokens.append(CommandToken(command, meta))

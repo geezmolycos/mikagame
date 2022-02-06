@@ -41,7 +41,7 @@
                         f.write(await response.bytes())
                 
                 mkdir("styleml")
-                py_files = "mika_screen.py, mika_htmlui.py, styleml_mika_exts.py, utilities.py, ./styleml/convenient_argument.py, ./styleml/core.py, ./styleml/macro_ext.py, ./styleml/portal_ext.py"
+                py_files = "mika_dialogue.py, mika_screen.py, mika_htmlui.py, styleml_mika_exts.py, utilities.py, ./styleml/convenient_argument.py, ./styleml/core.py, ./styleml/macro_ext.py, ./styleml/portal_ext.py"
                 py_files = py_files.split(", ")
                 await gather(*[fetch_py(fn) for fn in py_files])
 
@@ -50,9 +50,10 @@
         }
         main();
         </script>
+        <textarea id="dialogue-text"></textarea>
+        <button id="reload">reload</button>
+        <button id="next">next</button>
         <textarea id="sty-text"></textarea>
-        <button id="show-sty">update</button>
-        <button id="clear-sty">clear</button>
-        <button id="interrupt-sty-animation">interrupt</button>
+        <button id="choose">choose</button>
     </body>
 </html>

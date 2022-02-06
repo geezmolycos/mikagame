@@ -14,6 +14,7 @@ class MacroExtParser(StyleMLExtParser):
     宏内容中有可能出现的特殊字符，包括"\", "[", "]"，已经在解析成token的时候解析好了
     参数用%名字%表示
     而"%"本身用%%表示
+    定义宏还有命令\defexp，采取先展开再定义，即eager evaluation的形式
     消除宏的命令：\undef[宏名]
     调用宏的命令如：\!宏名[参数]
     命令参数和命令不能嵌套，因此，if/else以基于宏的方式实现
@@ -30,6 +31,10 @@ class MacroExtParser(StyleMLExtParser):
             if isinstance(t, CommandToken) and t.value == "def":
                 name, expand_to = parse_convenient_pair(t.meta.get("argument"))
                 current_macros[name] = expand_to
+            elif isinstance(t, CommandToken) and t.value == "defexp":
+                name, to_expand = parse_convenient_pair(t.meta.get("argument"))
+                expanded, inner_macros = self.expand_and_get_defined_macros(expanded_tokens, initial_macros=current_macros)
+                current_macros[name] = expanded # 里面定义的宏不出来，只用展开的结果
             elif isinstance(t, CommandToken) and t.value == "undef":
                 name = t.meta.get("argument")
                 current_macros.pop(name)
@@ -50,12 +55,12 @@ class MacroExtParser(StyleMLExtParser):
                 exp_then, exp_else = arguments.get("then"), arguments.get("else")
                 exp = None
                 if a and b:
-                    a_exp, b_exp = current_macros[a], current_macros[b]
+                    a_exp, b_exp = current_macros[a], current_macros[b] # 只比较宏定义，不将内部的宏引用展开
                     if a_exp == b_exp:
                         exp = current_macros.get(exp_then)
                     else:
                         exp = current_macros.get(exp_else)
-                if exp:
+                if exp: # 有可能then或else没有指定内容
                     expanded_tokens = self.core.tokenize(exp)
                     recursive_expanded_tokens, inner_macros = self.expand_and_get_defined_macros(expanded_tokens, initial_macros=current_macros)
                     transformed_tokens.extend(recursive_expanded_tokens)
