@@ -74,13 +74,14 @@ class RelReposToken(ReposToken):
         col, row = self.value
         v = Vector2D(col or 0, row or 0) # None代表不移动
         return original_pos + v
+
 @attr.s(frozen=True)
 class AbsReposToken(ReposToken):
     
     def repos_target(self, original_pos):
         col, row = self.value
         v = Vector2D(original_pos.x if col is None else col, original_pos.y if row is None else row) # None代表不移动
-        return self.value
+        return v
 
 @attr.s(frozen=True)
 class NewLineToken(ReposToken):
@@ -116,8 +117,6 @@ class StyleMLCoreParser:
             if ch == "\\" and escape in tuple("\\[]{}@#"): # 处理转义字符
                 text_as_rlist.pop()
                 escaped_text_as_list.append(ch + escape)
-            elif ch == "\\" and escape == "\n": # 换行符转义，不换行
-                text_as_rlist.pop() # 什么也不添加
             else:
                 escaped_text_as_list.append(ch)
         
@@ -144,32 +143,46 @@ class StyleMLCoreParser:
         trimmed_text_as_rlist = list_join(trimmed_text_as_rlist, "\n")
         trimmed_text_as_rlist.reverse()
         
-        # 解析tokens
-        tokens = []
+        # 处理换行符转义
+        flattened_text_as_rlist = []
         while len(trimmed_text_as_rlist) != 0:
             ch = trimmed_text_as_rlist.pop()
+            try:
+                escape = trimmed_text_as_rlist[-1]
+            except IndexError:
+                escape = ""
+            if ch == "\\" and escape == "\n":
+                trimmed_text_as_rlist.pop()
+            else:
+                flattened_text_as_rlist.append(ch)
+        flattened_text_as_rlist.reverse()
+        
+        # 解析tokens
+        tokens = []
+        while len(flattened_text_as_rlist) != 0:
+            ch = flattened_text_as_rlist.pop()
             if ch == "\\": # command
                 command = []
                 try:
-                    while trimmed_text_as_rlist[-1] in cls.command_identifier:
-                        command.append(trimmed_text_as_rlist.pop())
+                    while flattened_text_as_rlist[-1] in cls.command_identifier:
+                        command.append(flattened_text_as_rlist.pop())
                 except IndexError: # 防止文本最后出现命令的情况
                     pass
                 command = "".join(command)
                 meta = {}
                 try:
-                    if trimmed_text_as_rlist[-1] == "[":
-                        trimmed_text_as_rlist.pop()
+                    if flattened_text_as_rlist[-1] == "[":
+                        flattened_text_as_rlist.pop()
                         argument = []
-                        while trimmed_text_as_rlist[-1] != "]":
-                            argument.append(trimmed_text_as_rlist.pop()[-1]) # 可能有转义序列
-                        trimmed_text_as_rlist.pop()
+                        while flattened_text_as_rlist[-1] != "]":
+                            argument.append(flattened_text_as_rlist.pop()[-1]) # 可能有转义序列
+                        flattened_text_as_rlist.pop()
                         argument = "".join(argument)
                         meta["argument"] = argument
                 except IndexError: # 防止文本最后出现无参数的命令
                     pass
-                if len(trimmed_text_as_rlist) != 0 and trimmed_text_as_rlist[-1] == " ": # command后可以有一个空格
-                    trimmed_text_as_rlist.pop()
+                if len(flattened_text_as_rlist) != 0 and flattened_text_as_rlist[-1] == " ": # command后可以有一个空格
+                    flattened_text_as_rlist.pop()
                 tokens.append(CommandToken(command, meta))
             elif ch in tuple("{}"):
                 tokens.append(BracketToken(ch))
@@ -195,6 +208,7 @@ class StyleMLCoreParser:
             rendered_tokens.append(rendered_t)
             if isinstance(rendered_t, ReposToken):
                 current_pos = rendered_t.repos_target(current_pos)
+                print(rendered_t, current_pos)
             elif isinstance(rendered_t, AnchorToken):
                 current_anchors[rendered_t.value] = rendered_t
             elif isinstance(rendered_t, AnchorRemoveToken):

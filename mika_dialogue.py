@@ -115,10 +115,27 @@ if __name__ == "__main__":
     from styleml_mika_exts import StyleExtParser, AnimationExtParser, LineWrapExtParser
     
     dialogue_text = r"""
-    \st this\def[a=1] \ts
-    \st[label=t] that\!a \ts
-    \st fine \ts[to=t]
-    \st okay \ts
+\stchoice[n=2,m=choice]\
+    \def[notick=\\tick\[:0\]]\
+    \def[none?]\
+    \def[0;0]\def[1;1]\
+    \def[selected=\\s\[hlit+\]]\
+    \ifelse[\
+        a=choice,b=none,\
+        else=notick\
+    ]\
+    今天你想什么事呀？
+    \repos[row;3,col;5]\
+    {\ifelse[\
+        a=choice,b=0,\
+        then=selected\
+    ]没想什么}\
+    \offset[col;8]\
+    {\ifelse[\
+        a=choice,b=1,\
+        then=selected\
+    ]想吃饭}\
+\ts
     """
     
     styleml_parser = StyleMLCoreParser(
@@ -141,4 +158,5 @@ if __name__ == "__main__":
     
     from pprint import pprint
     pprint(character_dialogue.sentences)
+    character_dialogue.eval_sentence()
     globals().update(locals())
