@@ -1,7 +1,7 @@
 
 import attr
 
-from .convenient_argument import parse_convenient_obj_repr, parse_convenient_list
+from .convenient_argument import parse_convenient_obj_repr, parse_convenient_dict
 from .core import StyleMLExtParser
 from .core import CharacterToken, BracketToken, CommandToken
 from .core import AnchorToken, AnchorRemoveToken, ChainToken, NewLineToken, RelReposToken, AbsReposToken
@@ -16,8 +16,8 @@ class PortalExtParser(StyleMLExtParser):
     \anchor[名字]代表一个锚点
     \anchorrm[名字]删除一个锚点
     而\chain[名字]会寻找对应的锚点，将字符输出的位置重定位到锚点上
-    \repos[列|行]则会重定位字符输出到指定的行数和列数
-    \offset[列|行]会给输出位置增加偏移量
+    \repos[col#...,row#...]则会重定位字符输出到指定的行数和列数
+    \offset[col#...,row#...]会给输出位置增加偏移量
     """
     
     def transformer(self, tokens):
@@ -35,7 +35,8 @@ class PortalExtParser(StyleMLExtParser):
                     }[t.value](argument))
             elif isinstance(t, CommandToken) and t.value in ("repos", "offset"):
                 argument = t.meta.get("argument")
-                pos = Vector2D(*parse_convenient_list(argument, lower=parse_convenient_obj_repr))
+                arguments = parse_convenient_dict(argument)
+                pos = Vector2D(arguments.get("col"), arguments.get("row"))
                 transformed_tokens.append({"repos": AbsReposToken, "offset": RelReposToken}[t.value](pos))
             else:
                 transformed_tokens.append(t)

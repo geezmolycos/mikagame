@@ -19,6 +19,7 @@ class MacroExtParser(StyleMLExtParser):
     调用宏的命令如：\!宏名[参数]
     命令参数和命令不能嵌套，因此，if/else以基于宏的方式实现
     \ifelse[a=a,b=b,then=c,else=d] -> c if a == b else d，其中a,b,c,d均为宏的名字
+    \ifdef[a=a,then=c,else=d] 判断宏a是否定义
     """
     initial_macros = attr.ib(factory=dict)
     
@@ -57,6 +58,21 @@ class MacroExtParser(StyleMLExtParser):
                 if a and b:
                     a_exp, b_exp = current_macros[a], current_macros[b] # 只比较宏定义，不将内部的宏引用展开
                     if a_exp == b_exp:
+                        exp = current_macros.get(exp_then)
+                    else:
+                        exp = current_macros.get(exp_else)
+                if exp: # 有可能then或else没有指定内容
+                    expanded_tokens = self.core.tokenize(exp)
+                    recursive_expanded_tokens, inner_macros = self.expand_and_get_defined_macros(expanded_tokens, initial_macros=current_macros)
+                    transformed_tokens.extend(recursive_expanded_tokens)
+                    current_macros.update(inner_macros)
+            elif isinstance(t, CommandToken) and t.value == "ifdef":
+                arguments = parse_convenient_dict(t.meta.get("argument", ""))
+                a = arguments.get("a")
+                exp_then, exp_else = arguments.get("then"), arguments.get("else")
+                exp = None
+                if a:
+                    if a in current_macros:
                         exp = current_macros.get(exp_then)
                     else:
                         exp = current_macros.get(exp_else)

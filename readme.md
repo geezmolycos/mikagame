@@ -7,7 +7,7 @@
 游戏库提供了一种类tex语法的标记语言，可以方便地描述字符风格、动画、位置等内容。
 
 ```plaintext
-\tick[$0.1]Behold\delay[$0.5], here I am!\delay[$1.0]
-The {\s[bg=gray]Most {\s[fg=gold]\tick[$0.4]ALMIGHTY} and {\s[fg=red]\tick[$0.4]POWERFUL}}
+\tick[:0.1]Behold\delay[:0.5], here I am!\delay[:1.0]
+The {\s[bg=gray]Most {\s[fg=gold]\tick[:0.4]ALMIGHTY} and {\s[fg=red]\tick[:0.4]POWERFUL}}
 {\s[bg=red]Dragon} in this Kingdom!
 ```

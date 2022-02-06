@@ -1,8 +1,8 @@
-\tick[$0.1]Behold\delay[$0.5], here I am!\delay[$1.0]
-The {\s[bg=gray]Most {\s[fg=gold]\tick[$0.4]ALMIGHTY} and {\s[fg=red]\tick[$0.4]POWERFUL}}
+\tick[:0.1]Behold\delay[:0.5], here I am!\delay[:1.0]
+The {\s[bg=gray]Most {\s[fg=gold]\tick[:0.4]ALMIGHTY} and {\s[fg=red]\tick[:0.4]POWERFUL}}
 {\s[bg=red]Dragon} in this Kingdom!
 
-\tick[$0.05]\def[green=\\s\[fg=green\]]Oh I have an \anchor[=ap]apple, I have {\!green a pen}. {\chain[=ap]\s[fg=red,bg=orange]APPLE}
+\tick[:0.05]\def[green=\\s\[fg=green\]]Oh I have an \anchor[=ap]apple, I have {\!green a pen}. {\chain[=ap]\s[fg=red,bg=orange]APPLE}
 
 
 \def[set=\\def\[a=%a%\]]\
@@ -14,6 +14,35 @@ this is \!a
 
 \def[goto=\\anchor\[resume\]\\chain\[%c%\]]
 \def[back=\\chain\[resume\]]
-\tick[$0.05]今天是个好\anchor[typo]热字
-\tickm[$2]我说错了。\!goto[c=typo]日子\!back 已经改好了
+\tick[:0.05]今天是个好\anchor[typo]热字
+\tickm[:2]我说错了。\!goto[c=typo]日子\!back 已经改好了
 
+\st this\def[a=1] \ts
+\st[label=t] that\def[b=1]\def[then=\\def\[to=f\]]\def[else=\\def\[to=c\]]\ifelse[a=a,b=b,then=then,else=else]\tsm[to=to]
+\st[label=f] fine \def[a=2] \ts[to=t]
+\st[label=c] finally \ts
+\st okay \ts
+
+\st 今天是个好日子\ts
+\st 心想的事儿都能成\ts
+\stchoice[n=2,m=choice]
+    \def[notick=\\tick\[:0\]]\
+    \def[none?]\
+    \def[0#0]\def[1#1]\
+    \def[selected=\\s\[hlit+\]]\
+    \ifelse[\
+        a=choice,b=none,\
+        else=notick\
+    ]\
+    今天你想什么事呀？
+    \repos[row=3,col=5]\
+    {\ifelse[\
+        a=choice,b=0\
+        then=selected\
+    ]没想什么}\
+    \offset[col=8]\
+    {\ifelse[\
+        a=choice,b=1\
+        then=selected\
+    ]想吃饭}\
+\ts

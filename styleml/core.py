@@ -71,12 +71,15 @@ class ReposToken(Token):
 class RelReposToken(ReposToken):
     
     def repos_target(self, original_pos):
-        return original_pos + self.value
-
+        col, row = self.value
+        v = Vector2D(col or 0, row or 0) # None代表不移动
+        return original_pos + v
 @attr.s(frozen=True)
 class AbsReposToken(ReposToken):
     
     def repos_target(self, original_pos):
+        col, row = self.value
+        v = Vector2D(original_pos.x if col is None else col, original_pos.y if row is None else row) # None代表不移动
         return self.value
 
 @attr.s(frozen=True)
