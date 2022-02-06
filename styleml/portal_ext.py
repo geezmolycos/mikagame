@@ -24,7 +24,7 @@ class PortalExtParser(StyleMLExtParser):
         transformed_tokens = []
         for t in tokens:
             if isinstance(t, CommandToken) and t.value in ("n", "r"):
-                amount = parse_convenient_obj_repr(t.meta.get("argument", "")) or {"n": 1, "r": 0}[t.value]
+                amount = parse_convenient_obj_repr(t.meta.get("argument", ""), macros=t.meta.get("macros") or {}) or {"n": 1, "r": 0}[t.value]
                 transformed_tokens.append(NewLineToken(amount))
             elif isinstance(t, CommandToken) and t.value in ("anchor", "anchorrm", "chain"):
                 argument = t.meta.get("argument")
@@ -34,8 +34,7 @@ class PortalExtParser(StyleMLExtParser):
                     "chain": ChainToken
                     }[t.value](argument))
             elif isinstance(t, CommandToken) and t.value in ("repos", "offset"):
-                argument = t.meta.get("argument")
-                arguments = parse_convenient_dict(argument)
+                arguments = parse_convenient_dict(t.meta.get("argument", ""), macros=t.meta.get("macros") or {})
                 pos = Vector2D(arguments.get("col"), arguments.get("row"))
                 transformed_tokens.append({"repos": AbsReposToken, "offset": RelReposToken}[t.value](pos))
             else:

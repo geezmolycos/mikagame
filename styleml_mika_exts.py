@@ -27,10 +27,8 @@ class StyleExtParser(StyleMLExtParser):
                 step_style.pop()
                 transformed_tokens.append(t)
             elif isinstance(t, CommandToken) and t.value == "s":
-                argument = t.meta.get("argument")
-                if argument is not None:
-                    parsed_argument = parse_convenient_dict(argument)
-                    step_style[-1] = step_style[-1] | parsed_argument
+                parsed_argument = parse_convenient_dict(t.meta.get("argument", ""), macros=t.meta.get("macros") or {})
+                step_style[-1] = step_style[-1] | parsed_argument
             else:
                 transformed_tokens.append(t)
         return transformed_tokens
@@ -57,18 +55,18 @@ class AnimationExtParser(StyleMLExtParser):
                 transformed_tokens.append(t)
             elif isinstance(t, CommandToken) and t.value == "tick":
                 argument = t.meta.get("argument")
-                step_tick[-1] = parse_convenient_obj_repr(argument)
+                step_tick[-1] = parse_convenient_obj_repr(argument, macros=t.meta.get("macros") or {})
             elif isinstance(t, CommandToken) and t.value == "tickm":
                 argument = t.meta.get("argument")
-                step_tick_multiplier[-1] = parse_convenient_obj_repr(argument)
+                step_tick_multiplier[-1] = parse_convenient_obj_repr(argument, macros=t.meta.get("macros") or {})
             elif isinstance(t, CommandToken) and t.value == "delay":
-                delay = parse_convenient_obj_repr(t.meta.get("argument"))
+                delay = parse_convenient_obj_repr(t.meta.get("argument"), macros=t.meta.get("macros") or {})
                 transformed_tokens.append(Token(meta={"post_delay": delay}))
             elif isinstance(t, CommandToken) and t.value == "delaym":
-                delay = parse_convenient_obj_repr(t.meta.get("argument"))
+                delay = parse_convenient_obj_repr(t.meta.get("argument"), macros=t.meta.get("macros") or {})
                 transformed_tokens.append(Token(meta={"post_delay": step_tick[-1] * delay}))
             elif isinstance(t, CommandToken) and t.value == "delayc":
-                delay = parse_convenient_obj_repr(t.meta.get("argument"))
+                delay = parse_convenient_obj_repr(t.meta.get("argument"), macros=t.meta.get("macros") or {})
                 transformed_tokens.append(Token(meta={"post_delay": step_tick[-1] * step_tick_multiplier[-1] * delay}))
             elif isinstance(t, BracketToken) and t.is_left():
                 step_tick.append(step_tick[-1])

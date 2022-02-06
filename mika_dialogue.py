@@ -27,7 +27,7 @@ def tokens_to_sentences(tokens):
             break
         if isinstance(t, CommandToken) and t.value in ("st", "stchoice"):
             a = {}
-            arguments = parse_convenient_dict(t.meta.get("argument", ""))
+            arguments = parse_convenient_dict(t.meta.get("argument", ""), macros=t.meta.get("macros") or {})
             a["label"] = arguments.get("label")
             if t.value == "stchoice":
                 a["choice_amount"] = arguments.get("n")
@@ -36,7 +36,7 @@ def tokens_to_sentences(tokens):
             while (content_t := next(it)).value not in ("ts", "tsm"):
                 content.append(content_t)
             a["content"] = content
-            end_arguments = parse_convenient_dict(content_t.meta.get("argument", ""))
+            end_arguments = parse_convenient_dict(content_t.meta.get("argument", ""), macros=content_t.meta.get("macros") or {})
             a["to"] = end_arguments.get("to")
             a["imm"] = end_arguments.get("imm")
             a["is_tsm"] = content_t.value == "tsm"

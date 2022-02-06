@@ -28,6 +28,7 @@ class Token:
     value = attr.ib(default=None)
     meta = attr.ib(factory=dict)
     printable = False
+    require_macros = False
 
 @attr.s(frozen=True)
 class CharacterToken(Token):
@@ -35,8 +36,6 @@ class CharacterToken(Token):
 
 @attr.s(frozen=True)
 class BracketToken(Token):
-    
-    printable = False
     
     def is_left(self):
         return self.value == "{"
@@ -46,23 +45,23 @@ class BracketToken(Token):
     
 @attr.s(frozen=True)
 class CommandToken(Token):
-    printable = False
+    require_macros = True
 
 @attr.s(frozen=True)
 class AnchorToken(Token):
-    printable = False
+    pass
 
 @attr.s(frozen=True)
 class AnchorRemoveToken(Token):
-    printable = False
+    pass
 
 @attr.s(frozen=True)
 class ChainToken(Token):
-    printable = False
+    pass
 
 @attr.s(frozen=True)
 class ReposToken(Token):
-    printable = False
+    pass
     
     def repos_target(self, original_pos):
         raise NotImplementedError()
