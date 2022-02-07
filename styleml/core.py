@@ -207,7 +207,6 @@ class StyleMLCoreParser:
             rendered_tokens.append(rendered_t)
             if isinstance(rendered_t, ReposToken):
                 current_pos = rendered_t.repos_target(current_pos)
-                print(rendered_t, current_pos)
             elif isinstance(rendered_t, AnchorToken):
                 current_anchors[rendered_t.value] = rendered_t
             elif isinstance(rendered_t, AnchorRemoveToken):

@@ -54,7 +54,7 @@ class MacroExtParser(StyleMLExtParser):
                 a, b = arguments.get("a"), arguments.get("b")
                 exp_then, exp_else = arguments.get("then"), arguments.get("else")
                 exp = None
-                if a and b:
+                if "a" in arguments and "b" in arguments:
                     if a == b: # 已经将引用宏的能力写到了convenient obj expr中
                         exp = exp_then
                     else:

@@ -5,7 +5,7 @@ nothing_sentinent = object()
 
 def parse_convenient_obj_repr(s, macros=None):
     "使用一个标点符号和字符串表示一个简单对象，比如是数字/字符串/真假"
-    m = re.match(r"([=;:\+\-?!^])(.*)", s)
+    m = re.match(r"([=;:\+\-\?!\^])(.*)", s)
     if not m:
         return nothing_sentinent
     type, value = m[1], m[2]
