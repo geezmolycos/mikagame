@@ -38,6 +38,9 @@ dialogue_frame_pos = Vector2D(10, 0)
 dialogue_frame_area = (25, 5)
 dialogue_frame_dr = Vector2D(dialogue_frame_pos.x + dialogue_frame_area[0], dialogue_frame_pos.y + dialogue_frame_area[1])
 
+current_choice = None
+total_choice = 0
+
 def clear_dialogue():
     for y in range(dialogue_frame_pos.y, dialogue_frame_dr.y):
         for x in range(dialogue_frame_pos.x, dialogue_frame_dr.x):
@@ -57,12 +60,21 @@ def _(e):
         )
     clear_dialogue()
     print_dialogue()
+    global total_choice
+    try:
+        total_choice = character_dialogue.current_sentence.choice_amount
+    except AttributeError:
+        total_choice = 0
+    current_choice = None
 jq("#reload").on("click", create_proxy(_))
 
 def _(e):
     character_dialogue.next_sentence()
     clear_dialogue()
     print_dialogue()
+    global total_choice
+    total_choice = character_dialogue.current_st_args.get("n") or 0
+    current_choice = None
 jq("#next").on("click", create_proxy(_))
 
 def _(e):
@@ -70,3 +82,17 @@ def _(e):
     clear_dialogue()
     print_dialogue(s, None)
 jq("#choose").on("click", create_proxy(_))
+
+def _(e):
+    global current_choice
+    current_choice = ((current_choice or 0) + 1) % total_choice
+    clear_dialogue()
+    print_dialogue(current_choice, None)
+jq("#choose-next").on("click", create_proxy(_))
+
+def _(e):
+    global current_choice
+    current_choice = ((current_choice or 0) - 1) % total_choice
+    clear_dialogue()
+    print_dialogue(current_choice, None)
+jq("#choose-prev").on("click", create_proxy(_))

@@ -11,3 +11,8 @@
 The {\s[bg=gray]Most {\s[fg=gold]\tick[:0.4]ALMIGHTY} and {\s[fg=red]\tick[:0.4]POWERFUL}}
 {\s[bg=red]Dragon} in this Kingdom!
 ```
+
+## TODO
+
+- [ ] 地图系统
+  - 采用选项的方式实现，其实就是对话系统！

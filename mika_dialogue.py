@@ -7,15 +7,13 @@ from styleml.convenient_argument import parse_convenient_dict
 @attr.s
 class Sentence:
     content = attr.ib(default=None)
+    st_arg = attr.ib(default=None)
+    ts_arg = attr.ib(default=None)
     label = attr.ib(default=None)
-    to = attr.ib(default=None)
-    imm = attr.ib(default=False)
-    is_tsm = attr.ib(default=False)
 
 @attr.s
 class ChoiceSentence(Sentence):
-    choice_amount = attr.ib(default=None)
-    state_macro = attr.ib(default=None)
+    pass
 
 def tokens_to_sentences(tokens):
     it = iter(tokens)
@@ -26,21 +24,12 @@ def tokens_to_sentences(tokens):
         except StopIteration:
             break
         if isinstance(t, CommandToken) and t.value in ("st", "stchoice"):
-            a = {}
-            arguments = parse_convenient_dict(t.meta.get("argument", ""), macros=t.meta.get("macros") or {})
-            a["label"] = arguments.get("label")
-            if t.value == "stchoice":
-                a["choice_amount"] = arguments.get("n")
-                a["state_macro"] = arguments.get("m")
+            st_arg = t.meta.get("argument", "")
             content = []
-            while (content_t := next(it)).value not in ("ts", "tsm"):
+            while (content_t := next(it)).value not in ("ts"):
                 content.append(content_t)
-            a["content"] = content
-            end_arguments = parse_convenient_dict(content_t.meta.get("argument", ""), macros=content_t.meta.get("macros") or {})
-            a["to"] = end_arguments.get("to")
-            a["imm"] = end_arguments.get("imm")
-            a["is_tsm"] = content_t.value == "tsm"
-            st = {"st": Sentence, "stchoice": ChoiceSentence}[t.value](**a)
+            ts_arg = content_t.meta.get("argument", "")
+            st = {"st": Sentence, "stchoice": ChoiceSentence}[t.value](content=content, st_arg=st_arg, ts_arg=ts_arg, label=parse_convenient_dict(st_arg).get("label"))
             sentences.append(st)
     return sentences
 
@@ -51,6 +40,8 @@ class CharacterDialogue:
     labeled_sentences = attr.ib(init=False)
     current_sentence_index = attr.ib(default=0)
     current_macros = attr.ib(factory=dict)
+    current_st_args = attr.ib(default=None)
+    current_ts_args = attr.ib(default=None)
     next_macros = attr.ib(factory=dict)
     macro_parser = attr.ib(default=None)
     styleml_parser = attr.ib(default=None)
@@ -66,36 +57,36 @@ class CharacterDialogue:
         return self.sentences[self.current_sentence_index]
     
     def eval_sentence(self, choice=None):
+        self.current_st_args = parse_convenient_dict(self.current_sentence.st_arg, macros=self.current_macros)
         if isinstance(self.current_sentence, ChoiceSentence):
-            self.current_macros[self.current_sentence.state_macro] = choice
+            choice_macro_name = self.current_st_args.get("m")
+            if choice_macro_name is not None:
+                self.current_macros[choice_macro_name] = choice
         expanded, macros = self.macro_parser.expand_and_get_defined_macros(
             self.current_sentence.content,
             initial_macros=self.current_macros
             )
         rendered = self.styleml_parser.render(self.styleml_parser.transform(expanded))
         self.next_macros = macros
+        self.current_ts_args = parse_convenient_dict(self.current_sentence.ts_arg, macros=self.next_macros)
         return rendered
     
     def next_sentence(self):
-        self.current_macros = self.next_macros
-        if self.current_sentence.to is not None:
-            if self.current_sentence.is_tsm: # 是引用自宏的引用值
-                next_index = self.labeled_sentences[self.current_macros[self.current_sentence.to]]
-            else:
-                next_index = self.labeled_sentences[self.current_sentence.to]
+        if "to" in self.current_ts_args:
+            to = self.current_ts_args.get("to")
+            next_index = self.labeled_sentences[to]
         else:
             next_index = self.current_sentence_index + 1
         if len(self.sentences) <= next_index:
             raise IndexError("no more sentences!")
+        self.current_macros = self.next_macros
         self.current_sentence_index = next_index
 
 # 描述有选项的长对话的语言：
 # 使用\st表示一个句子，可选的label参数作为句子名字
 # \ts表示句子结束，参数的imm表示给用户停止的机会与否，参数的to表示要跳转到的label（默认是下一句）
-# \tsm表示参数不是字面量，而是宏名字
 # 使用\stchoice[n=数量, m=choice]来表示让玩家作出选择，选择时会改变当前句子的macro，即choice会变成0, 1, 2, ...，并且会重新渲染该句子
 # 当前句子可以通过该macro来改变自己的样貌
-# 而\stchoicem是上述命令的宏版本
 # 解析流程：tokenize->外部分析器，将长对话分成「若干个句子」->将每个句子做成一个实例，编号id，有label的贴上label
 # 句子实例中包括tokenize出的token，句子结束方式
 
@@ -115,27 +106,38 @@ if __name__ == "__main__":
     from styleml_mika_exts import StyleExtParser, AnimationExtParser, LineWrapExtParser
     
     dialogue_text = r"""
-\stchoice[n=2,m=choice]\
-    \def[notick=\\tick\[:0\]]\
-    \def[none?]\
-    \def[0;0]\def[1;1]\
+\st 今天是个好日子\ts
+\st 心想的事儿都能成\ts
+\stchoice[label=ch,n;2,m=choice]\
     \def[selected=\\s\[hlit+\]]\
     \ifelse[\
-        a=choice,b=none,\
-        else=notick\
+        a!choice,b?,\
+        else=\\tick\[:0\]\
     ]\
     今天你想什么事呀？
     \repos[row;3,col;5]\
     {\ifelse[\
-        a=choice,b=0,\
-        then=selected\
+        a!choice,b;0,\
+        then!selected\
     ]没想什么}\
     \offset[col;8]\
     {\ifelse[\
-        a=choice,b=1,\
-        then=selected\
+        a!choice,b;1,\
+        then!selected\
     ]想吃饭}\
-\ts
+    \ifelse[\
+        a!choice,b;0,\
+        then=\\def\[to=a\],\
+        else=\\def\[to=b\]\
+    ]\
+\ts[to!to]\
+\st[label=a]\
+那就等明天来罢。
+\ts[to=ch]\
+\st[label=b]\
+给你吃大嘴巴子。
+\ts\
+\st啪\ts
     """
     
     styleml_parser = StyleMLCoreParser(

@@ -6,7 +6,7 @@ import attr
 from utilities import Vector2D, list_split, list_join
 
 """
-TODO: 接口化styleml语言：
+接口化styleml语言：
 styleml语言的各解析阶段和各概念名称
 原文(text) -tokenize->
 tokens -transform->

@@ -25,7 +25,7 @@ this is \!a
 
 \st 今天是个好日子\ts
 \st 心想的事儿都能成\ts
-\stchoice[n=2,m=choice]\
+\stchoice[label=ch,n;2,m=choice]\
     \def[selected=\\s\[hlit+\]]\
     \ifelse[\
         a!choice,b?,\
@@ -42,4 +42,16 @@ this is \!a
         a!choice,b;1,\
         then!selected\
     ]想吃饭}\
-\ts
+    \ifelse[\
+        a!choice,b;0,\
+        then=\\def\[to=a\],\
+        else=\\def\[to=b\]\
+    ]\
+\ts[to!to]\
+\st[label=a]\
+那就等明天来罢。
+\ts[to=ch]\
+\st[label=b]\
+给你吃大嘴巴子。
+\ts\
+\st啪\ts
