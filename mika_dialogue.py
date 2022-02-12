@@ -38,11 +38,11 @@ class CharacterDialogue:
     
     sentences = attr.ib(factory=list)
     labeled_sentences = attr.ib(init=False)
-    current_sentence_index = attr.ib(default=0)
-    current_macros = attr.ib(factory=dict)
-    current_st_args = attr.ib(default=None)
-    current_ts_args = attr.ib(default=None)
-    next_macros = attr.ib(factory=dict)
+    current_sentence_index = attr.ib(init=False)
+    current_macros = attr.ib(init=False)
+    current_st_args = attr.ib(init=False)
+    current_ts_args = attr.ib(init=False)
+    next_macros = attr.ib(init=False)
     macro_parser = attr.ib(default=None)
     styleml_parser = attr.ib(default=None)
     
@@ -51,6 +51,7 @@ class CharacterDialogue:
         for i, st in enumerate(self.sentences):
             if st.label is not None:
                 self.labeled_sentences[st.label] = i # 记录每个label对应的sentence index
+        self.reset_dialogue(clear_macro=True)
     
     @property
     def current_sentence(self):
@@ -81,6 +82,39 @@ class CharacterDialogue:
             raise IndexError("no more sentences!")
         self.current_macros = self.next_macros
         self.current_sentence_index = next_index
+    
+    def reset_dialogue(self, clear_macro=False):
+        self.current_sentence_index = 0
+        self.current_st_args = None
+        self.current_ts_args = None
+        if clear_macro:
+            self.current_macros = {}
+            self.next_macros = {}
+
+@attr.s
+class MapDialogue(CharacterDialogue):
+    
+    characters = attr.ib(factory=dict)
+    
+    def should_change_to_character(self):
+        if "dialogue" in self.current_ts_args and self.current_ts_args["dialogue"] is not None:
+            return True, self.current_ts_args["dialogue"]
+        else:
+            return False, None
+    
+    def eval_sentence(self, choice=None, in_character_dialogue=False):
+        if in_character_dialogue:
+            if "character_dialogue_m" in self.current_st_args:
+                character_dialogue_macro_name = self.current_st_args["character_dialogue_m"]
+                self.current_macros[character_dialogue_macro_name] = in_character_dialogue
+        else:
+            if self.current_st_args is not None and "character_dialogue_m" in self.current_st_args:
+                character_dialogue_macro_name = self.current_st_args["character_dialogue_m"]
+                if character_dialogue_macro_name in self.current_macros:
+                    self.current_macros.pop(character_dialogue_macro_name)
+        return super().eval_sentence(choice)
+    
+        
 
 # 描述有选项的长对话的语言：
 # 使用\st表示一个句子，可选的label参数作为句子名字

@@ -103,7 +103,7 @@ class StyleMLCoreParser:
             parser.set_core_parser(self)
     
     @classmethod
-    def tokenize(cls, text):
+    def tokenize(cls, text, inline_mode=False): # inline_mode不使用多行处理，不截行首行尾，也不除行首空格
         # 处理转义符
         text_as_rlist = list(reversed(text))
         escaped_text_as_list = []
@@ -119,42 +119,47 @@ class StyleMLCoreParser:
             else:
                 escaped_text_as_list.append(ch)
         
-        # 处理行首开始符(@)和注释符(#)
-        trimmed_text_as_rlist = []
-        for line in list_split(escaped_text_as_list, "\n"):
-            leading, *rest = list_split(line, "@")
-            if not rest: # 没行首开始符
-                leading.reverse()
+        if not inline_mode:
+            # 处理行首开始符(@)和注释符(#)
+            trimmed_text_as_rlist = []
+            for line in list_split(escaped_text_as_list, "\n"):
+                leading, *rest = list_split(line, "@")
+                if not rest: # 没行首开始符
+                    leading.reverse()
+                    try:
+                        while (ch := leading.pop()) == " ": # 去除前导空格
+                            pass
+                        leading.append(ch) # 把去多的加回来
+                    except IndexError:
+                        pass # 整行都是空格，pop完了
+                    leading.reverse()
+                    line = leading
+                else:
+                    rest = list_join(rest, "@")
+                    line = rest
+                # 注释符
+                leading, *rest = list_split(line, "#")
+                trimmed_text_as_rlist.append(leading)
+            trimmed_text_as_rlist = list_join(trimmed_text_as_rlist, "\n")
+            trimmed_text_as_rlist.reverse()
+            
+            # 处理换行符转义
+            flattened_text_as_rlist = []
+            while len(trimmed_text_as_rlist) != 0:
+                ch = trimmed_text_as_rlist.pop()
                 try:
-                    while (ch := leading.pop()) == " ": # 去除前导空格
-                        pass
-                    leading.append(ch) # 把去多的加回来
+                    escape = trimmed_text_as_rlist[-1]
                 except IndexError:
-                    pass # 整行都是空格，pop完了
-                leading.reverse()
-                line = leading
-            else:
-                rest = list_join(rest, "@")
-                line = rest
-            # 注释符
-            leading, *rest = list_split(line, "#")
-            trimmed_text_as_rlist.append(leading)
-        trimmed_text_as_rlist = list_join(trimmed_text_as_rlist, "\n")
-        trimmed_text_as_rlist.reverse()
-        
-        # 处理换行符转义
-        flattened_text_as_rlist = []
-        while len(trimmed_text_as_rlist) != 0:
-            ch = trimmed_text_as_rlist.pop()
-            try:
-                escape = trimmed_text_as_rlist[-1]
-            except IndexError:
-                escape = ""
-            if ch == "\\" and escape == "\n":
-                trimmed_text_as_rlist.pop()
-            else:
-                flattened_text_as_rlist.append(ch)
-        flattened_text_as_rlist.reverse()
+                    escape = ""
+                if ch == "\\" and escape == "\n":
+                    trimmed_text_as_rlist.pop()
+                else:
+                    flattened_text_as_rlist.append(ch)
+            flattened_text_as_rlist.reverse()
+        else:
+            escaped_text_as_list.reverse()
+            flattened_text_as_rlist = escaped_text_as_list
+            
         
         # 解析tokens
         tokens = []

@@ -44,7 +44,7 @@ class MacroExtParser(StyleMLExtParser):
                 macro_template = current_macros[macro_name]
                 macro_arguments.update({"": "%"})
                 expanded_text = re.sub(r"%(.*?)%", lambda match: macro_arguments.get(match[1], ""), macro_template)
-                expanded_tokens = self.core.tokenize(expanded_text)
+                expanded_tokens = self.core.tokenize(expanded_text, inline_mode=True)
                 # recursive expansion
                 recursive_expanded_tokens, inner_macros = self.expand_and_get_defined_macros(expanded_tokens, initial_macros=current_macros)
                 transformed_tokens.extend(recursive_expanded_tokens)
@@ -60,7 +60,7 @@ class MacroExtParser(StyleMLExtParser):
                     else:
                         exp = exp_else
                 if exp: # 有可能then或else没有指定内容
-                    expanded_tokens = self.core.tokenize(exp)
+                    expanded_tokens = self.core.tokenize(exp, inline_mode=True)
                     recursive_expanded_tokens, inner_macros = self.expand_and_get_defined_macros(expanded_tokens, initial_macros=current_macros)
                     transformed_tokens.extend(recursive_expanded_tokens)
                     current_macros.update(inner_macros)
