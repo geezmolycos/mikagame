@@ -53,19 +53,15 @@ class GameScreen:
             for x in range(pos0.x, pos1.x):
                 self.paint_cell(Vector2D(x, y), style)
     
-    async def async_print_tokens(self, tokens, origin, mati=Vector2D(1, 0), matj=Vector2D(0, 1), interruption_event=None, start_from=0):
+    async def async_print_tokens(self, tokens, origin, mati=Vector2D(1, 0), matj=Vector2D(0, 1), waiter=None, start_from=0):
         tokens = tokens[start_from:]
         for i, t in enumerate(tokens):
             post_delay = t.meta.get("post_delay", 0)
             self.print_token(t, origin, mati, matj)
-            if post_delay != 0:
-                done, pending = await asyncio.wait([
-                    asyncio.sleep(post_delay),
-                    (interruption_event or asyncio.Event()).wait(),
-                ], return_when=asyncio.FIRST_COMPLETED) # 保证中断事件触发时立刻中断
-                if interruption_event and interruption_event.is_set():
+            if post_delay != 0 and waiter is not None:
+                should_continue = await waiter(post_delay)
+                if not should_continue:
                     return i
-                list(pending)[0].cancel() # 一定是interruption_event
         return None
     
     def clear_screen(self):

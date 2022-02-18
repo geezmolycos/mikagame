@@ -47,22 +47,63 @@ total_choice = 0
 
 in_character_dialogue = None
 
+next_blocked = False
+ongoing_animation = False
+
+@attr.s
+class Waiter:
+    interrupted = attr.ib(default=False)
+    instant = attr.ib(default=False)
+    update_event = attr.ib(factory=asyncio.Event)
+    
+    async def __call__(self, time):
+        if self.interrupted:
+            return False
+        if self.instant:
+            return True
+        done, pending = await asyncio.wait([
+            asyncio.create_task(asyncio.sleep(time)),
+            asyncio.create_task(self.update_event.wait()),
+        ], return_when=asyncio.FIRST_COMPLETED) # 保证中断事件触发时立刻中断
+        for t in pending: # 清楚多余任务
+            t.cancel()
+        if self.interrupted:
+            return False
+        return True
+
+waiter = Waiter()
+
 def clear_map():
     for y in range(map_frame_pos.y, map_frame_dr.y):
         for x in range(map_frame_pos.x, map_frame_dr.x):
             scr.print_cell(Vector2D(x, y), ScreenCell(fg="black", bg="white"))
 
-def print_map(interruption_event=None):
+def print_map():
     global total_choice
+    waiter.interrupted = True
+    waiter.update_event.set()
+    interrupt_ongoing_map = asyncio.Event()
+    clear_map()
     tokens = map_dialogue.eval_sentence(current_choice, in_character_dialogue=in_character_dialogue)
     total_choice = map_dialogue.current_st_args.get("n", 0)
-    if map_dialogue.current_ts_args.get("imm"):
-        async def t():
-            await scr.async_print_tokens(tokens, map_frame_pos, interruption_event=interruption_event)
+    async def t():
+        global next_blocked
+        if map_dialogue.current_st_args.get("blk"): # block next
+            next_blocked = True
+        global waiter
+        waiter = Waiter()
+        global ongoing_animation
+        ongoing_animation = True
+        try:
+            await scr.async_print_tokens(tokens, map_frame_pos, waiter=waiter)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+        ongoing_animation = False
+        if map_dialogue.current_ts_args.get("imm"): # immediate
             next()
-        task = t()
-    else:
-        task = scr.async_print_tokens(tokens, map_frame_pos, interruption_event=interruption_event)
+        next_blocked = False
+    task = t()
     asyncio.create_task(task)
 
 def init_map_dialogue(map_text, character_texts):
@@ -88,35 +129,49 @@ def clear_dialogue():
         for x in range(dialogue_frame_pos.x, dialogue_frame_dr.x):
             scr.print_cell(Vector2D(x, y), ScreenCell(fg="black", bg="white"))
 
-def print_dialogue(interruption_event=None):
+def print_dialogue():
     global total_choice
+    waiter.interrupted = True
+    waiter.update_event.set()
+    interrupt_ongoing_map = asyncio.Event()
+    clear_dialogue()
     tokens = character_dialogue.eval_sentence(current_choice)
     total_choice = character_dialogue.current_st_args.get("n", 0)
-    if character_dialogue.current_ts_args.get("imm"):
-        async def t():
-            await scr.async_print_tokens(tokens, dialogue_frame_pos, interruption_event=interruption_event)
+    async def t():
+        global next_blocked
+        if character_dialogue.current_st_args.get("blk"): # block next
+            next_blocked = True
+        global waiter
+        waiter = Waiter()
+        global ongoing_animation
+        ongoing_animation = True
+        await scr.async_print_tokens(tokens, dialogue_frame_pos, waiter=waiter)
+        ongoing_animation = False
+        if character_dialogue.current_ts_args.get("imm"): # immediate
             next()
-        task = t()
-    else:
-        task = scr.async_print_tokens(tokens, dialogue_frame_pos, interruption_event=interruption_event)
+        next_blocked = False
+    task = t()
     asyncio.create_task(task)
 
 def next():
     global in_character_dialogue, character_dialogue
     global current_choice
+    if next_blocked:
+        return False
+    if ongoing_animation:
+        waiter.instant = True
+        waiter.update_event.set()
+        return False
     current_choice = None
     if in_character_dialogue is None:
         should, character_name = map_dialogue.should_change_to_character()
         if should:
             in_character_dialogue = character_name
             character_dialogue = map_dialogue.characters[character_name]
-            clear_map()
             print_map()
-            clear_dialogue()
             print_dialogue()
         else:
             map_dialogue.next_sentence()
-            clear_map()
             print_map()
     else:
         try:
@@ -125,15 +180,14 @@ def next():
             in_character_dialogue = None
             character_dialogue.reset_dialogue()
             clear_dialogue()
-            clear_map()
             print_map()
         else:
-            clear_dialogue()
             print_dialogue()
+    return True
         
-jq("#next").on("click", create_proxy(lambda e: next()))
+#jq("#next").on("click", create_proxy(lambda e: next()))
 
-def _(e):
+def choose_next():
     global current_choice
     current_choice = ((-1 if current_choice is None else current_choice) + 1) % total_choice
     if in_character_dialogue is None:
@@ -142,9 +196,9 @@ def _(e):
     else:
         clear_dialogue()
         print_dialogue()
-jq("#choose-next").on("click", create_proxy(_))
+#jq("#choose-next").on("click", create_proxy(_))
 
-def _(e):
+def choose_prev():
     global current_choice
     current_choice = ((0 if current_choice is None else current_choice) - 1) % total_choice
     if in_character_dialogue is None:
@@ -153,7 +207,16 @@ def _(e):
     else:
         clear_dialogue()
         print_dialogue()
-jq("#choose-prev").on("click", create_proxy(_))
+#jq("#choose-prev").on("click", create_proxy(_))
+
+def keypress(code, ctrl, shift, alt):
+    if code == "Space":
+        next()
+    elif code in ("ArrowLeft", "ArrowUp"):
+        choose_prev()
+    elif code in ("ArrowRight", "ArrowDown"):
+        choose_next()
+scr.registered_onkeypress.append(keypress)
 
 # load characters
 

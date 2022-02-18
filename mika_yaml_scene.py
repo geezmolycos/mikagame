@@ -17,6 +17,9 @@ scene_styleml_header = r"""
             else=\\\\tick\\\[:0\\\]\
         \]\
     ]\
+    \def[nochoosestay=\
+        \\ifelse\[a!choice,b?,then=\\\\def\\\[to=%to%\\\]\\\\def\\\[dialog%dial%\\\]\]
+    ]\
 \ts[imm+]
 """
 
@@ -28,11 +31,11 @@ class MikaScene:
     
     @classmethod
     def from_yaml(cls, yaml_text):
-        return cls(**yaml.load(yaml_text, Loader=yaml.Loader))
+        return cls(**yaml.safe_load(yaml_text))
 
     def to_styleml_text(self, this_label):
         choice_amount = len(self.connected_to) + len(self.characters)
-        head = fr"\stchoice[label={this_label},n;{choice_amount},m=choice,character_dialogue_m=cdm]\!noflash "
+        head = fr"\stchoice[label={this_label},n;{choice_amount},m=choice,character_dialogue_m=cdm]\!noflash \!nochoosestay[to={this_label},dial=?]"
         gotos = []
         i = 0
         for connection_label, connection_desc in self.connected_to.items():

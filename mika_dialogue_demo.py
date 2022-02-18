@@ -46,9 +46,9 @@ def clear_dialogue():
         for x in range(dialogue_frame_pos.x, dialogue_frame_dr.x):
             scr.print_cell(Vector2D(x, y), ScreenCell(fg="black", bg="white"))
 
-def print_dialogue(choice=None, interruption_event=None):
+def print_dialogue(choice=None):
     tokens = character_dialogue.eval_sentence(choice)
-    asyncio.create_task(scr.async_print_tokens(tokens, dialogue_frame_pos, interruption_event=interruption_event))
+    asyncio.create_task(scr.async_print_tokens(tokens, dialogue_frame_pos))
 
 def _(e):
     global character_dialogue
