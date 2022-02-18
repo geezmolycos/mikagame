@@ -30,7 +30,9 @@ def parse_convenient_obj_repr(s, macros=None):
 
 def parse_convenient_pair(s, macros=None):
     "使用一个key和convenient obj repr相连，代表一个键-值对"
-    m = re.match(r"([0-9A-Za-z_]*)(.*)", s)
+    m = re.match(r"(.*?)([=;:\+\-\?!\^].*)", s)
+    if not m:
+        return nothing_sentinent, nothing_sentinent
     key, repr = m[1], m[2]
     obj = parse_convenient_obj_repr(repr, macros=macros)
     return key, obj

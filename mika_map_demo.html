@@ -41,7 +41,9 @@
                         f.write(await response.bytes())
                 
                 mkdir("styleml")
-                py_files = "mika_dialogue.py, mika_screen.py, mika_htmlui.py, styleml_mika_exts.py, utilities.py, ./styleml/convenient_argument.py, ./styleml/core.py, ./styleml/macro_ext.py, ./styleml/portal_ext.py"
+                mkdir("demo_root")
+                py_files = "mika_modules.py, mika_dialogue.py, mika_screen.py, mika_htmlui.py, styleml_mika_exts.py, utilities.py, ./styleml/convenient_argument.py, ./styleml/core.py, ./styleml/macro_ext.py, ./styleml/portal_ext.py"
+                py_files += ", ./demo_root/jm.mika_character"
                 py_files = py_files.split(", ")
                 await gather(*[fetch_py(fn) for fn in py_files])
 

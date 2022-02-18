@@ -26,7 +26,7 @@ def tokens_to_sentences(tokens):
         if isinstance(t, CommandToken) and t.value in ("st", "stchoice"):
             st_arg = t.meta.get("argument", "")
             content = []
-            while (content_t := next(it)).value not in ("ts"):
+            while not isinstance(content_t := next(it), CommandToken) or content_t.value != "ts":
                 content.append(content_t)
             ts_arg = content_t.meta.get("argument", "")
             st = {"st": Sentence, "stchoice": ChoiceSentence}[t.value](content=content, st_arg=st_arg, ts_arg=ts_arg, label=parse_convenient_dict(st_arg).get("label"))
@@ -140,38 +140,7 @@ if __name__ == "__main__":
     from styleml_mika_exts import StyleExtParser, AnimationExtParser, LineWrapExtParser
     
     dialogue_text = r"""
-\st 今天是个好日子\ts
-\st 心想的事儿都能成\ts
-\stchoice[label=ch,n;2,m=choice]\
-    \def[selected=\\s\[hlit+\]]\
-    \ifelse[\
-        a!choice,b?,\
-        else=\\tick\[:0\]\
-    ]\
-    今天你想什么事呀？
-    \repos[row;3,col;5]\
-    {\ifelse[\
-        a!choice,b;0,\
-        then!selected\
-    ]没想什么}\
-    \offset[col;8]\
-    {\ifelse[\
-        a!choice,b;1,\
-        then!selected\
-    ]想吃饭}\
-    \ifelse[\
-        a!choice,b;0,\
-        then=\\def\[to=a\],\
-        else=\\def\[to=b\]\
-    ]\
-\ts[to!to]\
-\st[label=a]\
-那就等明天来罢。
-\ts[to=ch]\
-\st[label=b]\
-给你吃大嘴巴子。
-\ts\
-\st啪\ts
+    \st e我酷se我酷se我酷se我酷s\ts
     """
     
     styleml_parser = StyleMLCoreParser(

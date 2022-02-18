@@ -141,48 +141,23 @@ def _(e):
         print_dialogue()
 jq("#choose-prev").on("click", create_proxy(_))
 
+# load characters
 
+import mika_modules
+import os
+
+all_modules = mika_modules.walk_modules("./demo_root")
+# 读取人物
+all_characters = {}
+for m, file_name in all_modules.items():
+    if os.path.splitext(file_name)[1] == ".mika_character":
+        with open(os.path.join("demo_root", file_name), encoding="utf-8") as f:
+            all_characters[m] = f.read()
+
+print(all_characters)
 init_map_dialogue(
     map_text=r"""
-    \stchoice[label=magua,n;3,m=choice,character_dialogue_m=cdm]\
-    \def[choice_ind=\\ifelse\[a!choice,b;%i%,then=*,else= \]]\
-    \def[to_or_dial=\\ifelse\[a!choice,b;%i%,then=\\\\def\\\[to=%to%\\\]\\\\def\\\[dialog%dial%\\\]\]]\
-    \def[noflash=\
-            \\ifelse\[\
-            a!choice,b?,\
-            else=\\\\tick\\\[:0\\\]\
-        \]\
-        \\ifelse\[\
-            a!cdm,b?,\
-            else=\\\\tick\\\[:0\\\]\
-        \]\
-    ]\
-    \!noflash \
-    你现在在麻瓜镇。
-    \!choice_ind[i=0]1.去南瓜镇\!to_or_dial[i=0,to=nangua,dial=?]
-    \!choice_ind[i=1]2.去木瓜镇\!to_or_dial[i=1,to=mugua,dial=?]
-    \!choice_ind[i=2]3.与金毛对话\!to_or_dial[i=2,to=magua,dial==jin_mao]
-    \ts[to!to,dialogue!dialog]
-    \stchoice[label=nangua,n;3,m=choice,character_dialogue_m=cdm]\
-    \!noflash \
-    你现在在南瓜镇
-    \!choice_ind[i=0]1.去麻瓜镇\!to_or_dial[i=0,to=magua,dial=?]
-    \!choice_ind[i=1]2.去木瓜镇\!to_or_dial[i=1,to=mugua,dial=?]
-    \!choice_ind[i=2]3.与银毛对话\!to_or_dial[i=2,to=nangua,dial==yin_mao]
-    \ts[to!to,dialogue!dialog]
-    \stchoice[label=mugua,n;4,m=choice,character_dialogue_m=cdm]\
-    \!noflash \
-    你现在在木瓜镇
-    \!choice_ind[i=0]1.去麻瓜镇\!to_or_dial[i=0,to=magua,dial=?]
-    \!choice_ind[i=1]2.去南瓜镇\!to_or_dial[i=1,to=nangua,dial=?]
-    \!choice_ind[i=2]3.与铜毛对话\!to_or_dial[i=2,to=mugua,dial==tong_mao]
-    \!choice_ind[i=3]4.与铁毛对话\!to_or_dial[i=3,to=mugua,dial==tie_mao]
-    \ts[to!to,dialogue!dialog]
+    \st e我酷se我酷se我酷se我酷s\ts
     """,
-    character_texts={
-        "jin_mao": r"\st 你好\ts",
-        "yin_mao": r"\st 你才好\ts\st 我是银毛\ts",
-        "tong_mao": r"\st 你好\ts\st 我是铜毛\ts",
-        "tie_mao": r"\st 你好\ts\st 我是铁毛\ts",
-    }
+    character_texts=all_characters
 )
