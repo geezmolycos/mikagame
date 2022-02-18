@@ -34,12 +34,12 @@ macro_parser = MacroExtParser(core=styleml_parser)
 
 jq("body").append(scr.jq_cont)
 
-dialogue_frame_pos = Vector2D(10, 6)
+dialogue_frame_pos = Vector2D(10, 11)
 dialogue_frame_area = (25, 5)
 dialogue_frame_dr = Vector2D(dialogue_frame_pos.x + dialogue_frame_area[0], dialogue_frame_pos.y + dialogue_frame_area[1])
 
 map_frame_pos = Vector2D(10, 0)
-map_frame_area = (25, 5)
+map_frame_area = (25, 10)
 map_frame_dr = Vector2D(map_frame_pos.x + map_frame_area[0], map_frame_pos.y + map_frame_area[1])
 
 current_choice = None
