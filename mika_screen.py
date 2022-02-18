@@ -66,7 +66,7 @@ class GameScreen:
                 if interruption_event and interruption_event.is_set():
                     return i
                 list(pending)[0].cancel() # 一定是interruption_event
-        return i
+        return None
     
     def clear_screen(self):
         self.map = List2D(self.dim)

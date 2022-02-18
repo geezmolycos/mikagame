@@ -56,7 +56,14 @@ def print_map(interruption_event=None):
     global total_choice
     tokens = map_dialogue.eval_sentence(current_choice, in_character_dialogue=in_character_dialogue)
     total_choice = map_dialogue.current_st_args.get("n", 0)
-    asyncio.create_task(scr.async_print_tokens(tokens, map_frame_pos, interruption_event=interruption_event))
+    if map_dialogue.current_ts_args.get("imm"):
+        async def t():
+            await scr.async_print_tokens(tokens, map_frame_pos, interruption_event=interruption_event)
+            next()
+        task = t()
+    else:
+        task = scr.async_print_tokens(tokens, map_frame_pos, interruption_event=interruption_event)
+    asyncio.create_task(task)
 
 def init_map_dialogue(map_text, character_texts):
     global map_dialogue
@@ -85,7 +92,14 @@ def print_dialogue(interruption_event=None):
     global total_choice
     tokens = character_dialogue.eval_sentence(current_choice)
     total_choice = character_dialogue.current_st_args.get("n", 0)
-    asyncio.create_task(scr.async_print_tokens(tokens, dialogue_frame_pos, interruption_event=interruption_event))
+    if character_dialogue.current_ts_args.get("imm"):
+        async def t():
+            await scr.async_print_tokens(tokens, dialogue_frame_pos, interruption_event=interruption_event)
+            next()
+        task = t()
+    else:
+        task = scr.async_print_tokens(tokens, dialogue_frame_pos, interruption_event=interruption_event)
+    asyncio.create_task(task)
 
 def next():
     global in_character_dialogue, character_dialogue
@@ -144,20 +158,24 @@ jq("#choose-prev").on("click", create_proxy(_))
 # load characters
 
 import mika_modules
+import mika_yaml_scene
 import os
 
 all_modules = mika_modules.walk_modules("./demo_root")
 # 读取人物
 all_characters = {}
+map_texts = [mika_yaml_scene.scene_styleml_header]
 for m, file_name in all_modules.items():
-    if os.path.splitext(file_name)[1] == ".mika_character":
+    ext = os.path.splitext(file_name)[1]
+    if ext == ".mika_character":
         with open(os.path.join("demo_root", file_name), encoding="utf-8") as f:
             all_characters[m] = f.read()
+    elif ext == ".mika_scene":
+        with open(os.path.join("demo_root", file_name), encoding="utf-8") as f:
+            scene_text = mika_yaml_scene.MikaScene.from_yaml(f.read()).to_styleml_text(m)
+        map_texts.append(scene_text)
 
-print(all_characters)
 init_map_dialogue(
-    map_text=r"""
-    \st e我酷se我酷se我酷se我酷s\ts
-    """,
+    map_text="".join(map_texts),
     character_texts=all_characters
 )

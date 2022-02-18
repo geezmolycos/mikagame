@@ -29,7 +29,7 @@
             let pyodide = await loadPyodide({
                 indexURL : "https://cdn.jsdelivr.net/pyodide/v0.19.0/full/"
             });
-            await pyodide.loadPackage("attrs");
+            await pyodide.loadPackage(["attrs", "pyyaml"]);
             await pyodide.runPythonAsync(`
                 from pyodide.http import pyfetch
                 from asyncio import gather
@@ -42,8 +42,8 @@
                 
                 mkdir("styleml")
                 mkdir("demo_root")
-                py_files = "mika_modules.py, mika_dialogue.py, mika_screen.py, mika_htmlui.py, styleml_mika_exts.py, utilities.py, ./styleml/convenient_argument.py, ./styleml/core.py, ./styleml/macro_ext.py, ./styleml/portal_ext.py"
-                py_files += ", ./demo_root/jm.mika_character"
+                py_files = "mika_yaml_scene.py, mika_modules.py, mika_dialogue.py, mika_screen.py, mika_htmlui.py, styleml_mika_exts.py, utilities.py, ./styleml/convenient_argument.py, ./styleml/core.py, ./styleml/macro_ext.py, ./styleml/portal_ext.py"
+                py_files += ", ./demo_root/jm.mika_character, ./demo_root/pl.mika_scene"
                 py_files = py_files.split(", ")
                 await gather(*[fetch_py(fn) for fn in py_files])
 
