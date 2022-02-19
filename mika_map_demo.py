@@ -12,11 +12,69 @@ from styleml.macro_ext import MacroExtParser
 from styleml_mika_exts import StyleExtParser, AnimationExtParser, LineWrapExtParser
 
 import mika_dialogue as dialogue
+import mika_modules
 
 from pyodide import create_proxy
 from js import jQuery as jq
 
 import asyncio
+
+all_macros = {}
+@attr.s
+class MacroModuleProxy:
+    all_macros = attr.ib(factory=dict)
+    stage = attr.ib(factory=dict)
+    base_module = attr.ib(default="")
+    
+    def __getitem__(self, macro_name):
+        absolute = mika_modules.resolve_module_ref(self.base_module, macro_name)
+        if absolute not in self.stage:
+            return self.all_macros[absolute]
+        return self.stage[absolute]
+    
+    def __setitem__(self, macro_name, value):
+        absolute = mika_modules.resolve_module_ref(self.base_module, macro_name)
+        self.stage[absolute] = value
+    
+    def __contains__(self, macro_name):
+        absolute = mika_modules.resolve_module_ref(self.base_module, macro_name)
+        return absolute in self.stage or absolute in self.all_macros
+    
+    def merge(self):
+        self.all_macros.update(self.stage)
+    
+    def copy(self):
+        return attr.evolve(self, stage=self.stage.copy())
+
+    def update(self, value):
+        if isinstance(value, dict):
+            self.stage.update(value)
+        elif isinstance(value, MacroModuleProxy):
+            if self.all_macros is not value.all_macros:
+                raise ValueError("other is incompatible with this proxy")
+            self.stage.update(value.stage)
+    
+    def get(self, macro_name, default=None):
+        try:
+            return self[macro_name]
+        except KeyError:
+            return default
+    
+@attr.s
+class ModularCharacterDialogue(dialogue.CharacterDialogue):
+    
+    module = attr.ib(default="")
+    
+    def next_sentence(self, *args, **kwargs):
+        self.next_macros.merge()
+        r = super().next_sentence(*args, **kwargs)
+        return r
+
+    def reset_dialogue(self, clear_macro=False):
+        r = super().reset_dialogue(clear_macro)
+        if clear_macro:
+            self.current_macros = MacroModuleProxy(all_macros=all_macros, base_module=self.module)
+            self.next_macros = self.current_macros
 
 scr = HTMLGameScreen()
 
@@ -26,7 +84,7 @@ styleml_parser = StyleMLCoreParser(
         AnimationExtParser(initial_tick=0.05),
         StyleExtParser(initial_style=dict(bg="white", fg="black")),
         ReturnCharExtParser(),
-        LineWrapExtParser(cr_area=Vector2D(20, 0))
+        LineWrapExtParser(cr_area=Vector2D(25, 0))
         ]
     )
 
@@ -113,10 +171,11 @@ def init_map_dialogue(map_text, character_texts):
         styleml_parser=styleml_parser,
         macro_parser=macro_parser,
         characters={
-            k: dialogue.CharacterDialogue(
+            k: ModularCharacterDialogue(
                 sentences=dialogue.tokens_to_sentences(styleml_parser.tokenize(t)),
                 styleml_parser=styleml_parser,
-                macro_parser=macro_parser
+                macro_parser=macro_parser,
+                module=k
                 ) for k, t in character_texts.items()
             }
         )
@@ -220,7 +279,7 @@ scr.registered_onkeypress.append(keypress)
 
 # load characters
 
-import mika_modules
+
 import mika_yaml_scene
 import os
 

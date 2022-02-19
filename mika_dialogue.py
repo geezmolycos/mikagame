@@ -141,6 +141,7 @@ if __name__ == "__main__":
     
     dialogue_text = r"""
     \st e我酷se我酷se我酷se我酷s\ts
+    \st e我酷se我酷se我酷se我酷s\ts
     """
     
     styleml_parser = StyleMLCoreParser(

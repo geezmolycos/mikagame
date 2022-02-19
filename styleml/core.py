@@ -94,7 +94,7 @@ class StyleMLCoreParser:
     """
     StyleML的核心解析器
     """
-    command_identifier = ascii_letters + digits + "_" + "!"
+    command_terminator = set("\\ [\r\n")
     
     ext_parser = attr.ib(factory=list)
     
@@ -168,7 +168,7 @@ class StyleMLCoreParser:
             if ch == "\\": # command
                 command = []
                 try:
-                    while flattened_text_as_rlist[-1] in cls.command_identifier:
+                    while flattened_text_as_rlist[-1] not in cls.command_terminator:
                         command.append(flattened_text_as_rlist.pop())
                 except IndexError: # 防止文本最后出现命令的情况
                     pass
