@@ -46,4 +46,4 @@ if __name__ == "__main__":
     a = "a.b.c.d"
     r = "."
     print(resolve_module_ref(a,r))
-    print(walk_modules("./styleml"))
+    print(walk_modules("./demo_root"))

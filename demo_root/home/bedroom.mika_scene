@@ -1,0 +1,6 @@
+description: 这里是你家的卧室，有一张床，还有你的私人物品。
+connected_to:
+  ..corridor: 出门
+characters:
+  ..self: 照照镜子
+  ..bear: 看看你的小熊玩偶

@@ -8,5 +8,8 @@ root = "demo_root"
 
 modules = mika_modules.walk_modules(root)
 
+for k in modules:
+    modules[k] = modules[k].replace("\\", "/")
+
 with open("walk_modules.json", "w") as f:
     json.dump(modules, f)

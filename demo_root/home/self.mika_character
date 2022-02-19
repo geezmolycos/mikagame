@@ -1,0 +1,7 @@
+\st \ts[imm+,to!.reenter]
+\st[label=c0] 你在米卡镇，自己的家中，卧室。\n 你穿着一件奇怪的衣服，刚刚用肥皂洗过手。\ts
+\st 你感觉自己的手上没有病毒。\ts
+\st 在你的背后是一个铁架台，上面放着一只烧杯，里面有奇怪的物质，既不像固体，也不像液体。\ts
+\st \def[.reenter=c1]\ts[imm+,to=end]
+\st[label=c1] *今天是个好日子，心想的事儿都能成\ts
+\st[label=end] \ts[imm+]

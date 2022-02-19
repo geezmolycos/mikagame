@@ -1,1 +1,1 @@
-{"a_init": "a_init.mika_scene", "self": "self.mika_character"}
+{"a_init": "a_init.mika_scene", "predefined_macros": "predefined_macros.mika", "home.bear": "home/bear.mika_character", "home.bedroom": "home/bedroom.mika_scene", "home.corridor": "home/corridor.mika_scene", "home.friend": "home/friend.mika_character", "home.living_room": "home/living_room.mika_scene", "home.self": "home/self.mika_character"}

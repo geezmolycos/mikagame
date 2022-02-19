@@ -81,7 +81,7 @@ scr = HTMLGameScreen()
 styleml_parser = StyleMLCoreParser(
     ext_parser=[
         PortalExtParser(),
-        AnimationExtParser(initial_tick=0.05),
+        AnimationExtParser(initial_tick=0.07),
         StyleExtParser(initial_style=dict(bg="white", fg="black")),
         ReturnCharExtParser(),
         LineWrapExtParser(cr_area=Vector2D(25, 0))
@@ -157,9 +157,10 @@ def print_map():
         except Exception as e:
             import traceback
             traceback.print_exc()
+            raise
         ongoing_animation = False
         if map_dialogue.current_ts_args.get("imm"): # immediate
-            next()
+            next(manual=False)
         next_blocked = False
     task = t()
     asyncio.create_task(task)
@@ -204,18 +205,23 @@ def print_dialogue():
         waiter = Waiter()
         global ongoing_animation
         ongoing_animation = True
-        await scr.async_print_tokens(tokens, dialogue_frame_pos, waiter=waiter)
+        try:
+            await scr.async_print_tokens(tokens, dialogue_frame_pos, waiter=waiter)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            raise
         ongoing_animation = False
         if character_dialogue.current_ts_args.get("imm"): # immediate
-            next()
+            next(manual=False)
         next_blocked = False
     task = t()
     asyncio.create_task(task)
 
-def next():
+def next(manual=True):
     global in_character_dialogue, character_dialogue
     global current_choice
-    if next_blocked:
+    if manual and next_blocked:
         return False
     if ongoing_animation:
         waiter.instant = True
@@ -301,3 +307,7 @@ init_map_dialogue(
     map_text="".join(map_texts),
     character_texts=all_characters
 )
+
+with open("./demo_root/predefined_macros.mika") as f:
+    expanded, a = macro_parser.expand_and_get_defined_macros(styleml_parser.tokenize(f.read()))
+all_macros.update(a)
