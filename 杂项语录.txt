@@ -55,3 +55,10 @@ this is \!a
 给你吃大嘴巴子。
 \ts\
 \st啪\ts
+
+
+\glyphset[c_hz]{\s[bg=yellow,fg=black]\g[|敬告]}:{\s[bg=blue]\g[|-白度云]}\g[|次原]已被{\s[bg=red]\g[-禾皆]}！已被{\s[bg=red]\g[-禾皆]}！
+
+\glyphset[c_hz]\g[0辶|穴|--月|--幺言幺--长马长刂心]
+\glyphset[c_zy]\g[jien1]\g[mau2]\g[ieu3]\g[i4]\g[s5]
+\glyphset[c_hz]\g[0囗|-马来-西亚]

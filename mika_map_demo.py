@@ -10,6 +10,7 @@ from styleml.core import StyleMLCoreParser, ReturnCharExtParser
 from styleml.portal_ext import PortalExtParser
 from styleml.macro_ext import MacroExtParser
 from styleml_mika_exts import StyleExtParser, AnimationExtParser, LineWrapExtParser
+from styleml_glyph_exts import GlyphsetExtParser
 
 import mika_dialogue as dialogue
 import mika_modules
@@ -81,6 +82,7 @@ scr = HTMLGameScreen()
 styleml_parser = StyleMLCoreParser(
     ext_parser=[
         PortalExtParser(),
+        GlyphsetExtParser(),
         AnimationExtParser(initial_tick=0.07),
         StyleExtParser(initial_style=dict(bg="white", fg="black")),
         ReturnCharExtParser(),

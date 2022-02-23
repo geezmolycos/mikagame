@@ -2,3 +2,4 @@ description: 这里是家里面的走廊，通向各个房间。
 connected_to:
   ..bedroom: 去卧室
   ..living_room: 去客厅
+  ..kitchen: 去厨房

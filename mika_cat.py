@@ -6,6 +6,7 @@ from styleml.core import StyleMLCoreParser, ReturnCharExtParser
 from styleml.portal_ext import PortalExtParser
 from styleml.macro_ext import MacroExtParser
 from styleml_mika_exts import StyleExtParser, AnimationExtParser, LineWrapExtParser
+from styleml_glyph_exts import GlyphsetExtParser
 
 from pyodide import create_proxy
 from js import jQuery as jq
@@ -18,6 +19,7 @@ styleml_parser = StyleMLCoreParser(
     ext_parser=[
         MacroExtParser(),
         PortalExtParser(),
+        GlyphsetExtParser(),
         AnimationExtParser(),
         StyleExtParser(),
         ReturnCharExtParser(),
@@ -68,8 +70,12 @@ def _(e):
     interrupt_events[current_animation_id] = interrupt_event
     next_animation_id += 1
     async def _():
-        await htmlui.async_print_tokens(tokens, interruption_event=interrupt_event)
-        interrupt_events.pop(current_animation_id)
+        try:
+            await htmlui.async_print_tokens(tokens, origin=Vector2D(0, 0))
+            interrupt_events.pop(current_animation_id)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
     asyncio.create_task(_())
     # htmlui.screen_update(jq_cont)
 

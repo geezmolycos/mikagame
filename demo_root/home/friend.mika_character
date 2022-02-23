@@ -1,0 +1,45 @@
+\st \ts[imm+,to!.reenter]
+\stchoice[label=ch,n;3,m=.choice]\
+    \!noflash \
+    *你好，今天做什么呢。玩一玩新买到的游戏吧？
+    \repos[row;3,col;5]\
+    {\!selectedfor[c=;0]玩游戏\!choiceto[c=;0,to=c0]}\
+    \offset[col;2]\
+    {\!selectedfor[c=;1]吃饭\!choiceto[c=;1,to=c1]}\
+    \offset[col;2]\
+    {\!selectedfor[c=;2]睡觉\!choiceto[c=;2,to=c2]}\
+    \!nochoosestay[to=ch]\
+\ts[to!.to]\
+\st[label=c0] \!selfs *玩游戏怎么样？\ts
+\st *好的，我正想玩游戏\ts
+\st 你和朋友二话不说，将最新款的任地狱®开关®游戏机拿出，开始玩起来。\ts
+\st[blk+] \tickm[:8]......\ts[imm+]
+\st 虚拟世界中的招式比拼眼花缭乱，你们没有察觉到时间过得多快。\def[.reenter=nointerest]\ts[to=end]
+\st[label=c1] \!selfs *吃饭吧。\ts
+\st *我刚刚吃过，现在还不饿，你饿的话，先吃吧。我不很着急，可以等你。\ts
+\st 朋友为了表示自己不着急，拿出手机向我示意。\ts
+\st *我就玩会儿手机，也不错。\ts
+\st 你进入厨房，取出一袋泡面。\ts
+\st 你烧上水。\ts
+\st[blk+] \
+    \anchor[水]水:
+    室温|\anchor[室温]\offset[col;8]|烧开\chain[室温]\
+    \tickm[;12]{\s[fg=blue]---}\
+    \tickm[;16]{\s[fg=orange]==}\
+    \anchor[back]\chain[水]{\tickm[;1]\s[fg=blue]水:}\chain[back]\
+    \tickm[;20]{\s[fg=red]=*0}\
+\ts[imm+]
+\st 水烧开了。接下来是下面。\ts
+\st 你将{\s[bg=yellow]面饼}、{\s[bg=green,fg=orange]菜包}、{\s[fg=gold]粉包}放入碗中。\ts
+\st 你将{\s[fg=orange,bg=blue]热水}倒入碗中。\ts
+\st[blk+] \tickm[:12]......\ts[imm+]
+\st 面泡好了！\ts
+\st \!selfs *泡面来了！\ts
+\st \!selfs *你真地不吃吗？\ts
+\st *不吃，我饱。\ts
+\st 你将泡面大嚼特嚼，发出了吸溜声和咂嘴声。\ts
+\st 泡面吃完了。\def[.reenter=nointerest]\ts[to=end]
+\st[label=c2] \!selfs *我想睡觉了。\ts
+\st *咱们的关系还没有到这种地步吧。\def[.reenter=nointerest]\ts[to=end]
+\st[label=nointerest] 你的朋友现在对你没有兴趣。\ts
+\st[label=end] \ts[imm+]
