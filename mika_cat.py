@@ -14,6 +14,29 @@ from js import jQuery as jq
 
 import asyncio
 
+import attr
+
+@attr.s
+class Waiter:
+    interrupted = attr.ib(default=False)
+    instant = attr.ib(default=False)
+    update_event = attr.ib(factory=asyncio.Event)
+    
+    async def __call__(self, time):
+        if self.interrupted:
+            return False
+        if self.instant:
+            return True
+        done, pending = await asyncio.wait([
+            asyncio.create_task(asyncio.sleep(time)),
+            asyncio.create_task(self.update_event.wait()),
+        ], return_when=asyncio.FIRST_COMPLETED) # 保证中断事件触发时立刻中断
+        for t in pending: # 清楚多余任务
+            t.cancel()
+        if self.interrupted:
+            return False
+        return True
+
 ui = SVGGameScreen()
 
 styleml_parser = StyleMLCoreParser(
@@ -55,7 +78,7 @@ def cat(key, ctrl, shift, alt):
 
 ui.registered_onkeypress.append(cat)
 
-interrupt_events = {}
+waiters = {}
 next_animation_id = 0
 
 def _(e):
@@ -66,14 +89,14 @@ def _(e):
     #ui.scr.print_footprints(footprints)
     
     global next_animation_id
-    interrupt_event = asyncio.Event()
+    waiter = Waiter()
     current_animation_id = next_animation_id
-    interrupt_events[current_animation_id] = interrupt_event
+    waiters[current_animation_id] = waiter
     next_animation_id += 1
     async def _():
         try:
-            await ui.async_print_tokens(tokens, origin=Vector2D(0, 0))
-            interrupt_events.pop(current_animation_id)
+            await ui.async_print_tokens(tokens, origin=Vector2D(0, 0), waiter=waiter)
+            waiters.pop(current_animation_id)
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -91,7 +114,8 @@ jq("#clear-sty").on("click", create_proxy(_))
 
 
 def _(e):
-    for anim_id, interrupt_event in interrupt_events.items():
-        interrupt_event.set()
+    for anim_id, waiter in waiters.items():
+        waiter.interrupted = True
+        waiter.update_event.set()
     
 jq("#interrupt-sty-animation").on("click", create_proxy(_))
