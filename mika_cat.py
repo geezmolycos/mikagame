@@ -31,7 +31,7 @@ class Waiter:
             asyncio.create_task(asyncio.sleep(time)),
             asyncio.create_task(self.update_event.wait()),
         ], return_when=asyncio.FIRST_COMPLETED) # 保证中断事件触发时立刻中断
-        for t in pending: # 清楚多余任务
+        for t in pending: # 清除多余任务
             t.cancel()
         if self.interrupted:
             return False
@@ -72,6 +72,7 @@ def cat(key, ctrl, shift, alt):
         caret_pos += Cardinal.RIGHT
     elif key == "Delete":
         ui.print_cell(caret_pos, ScreenCell())
+    caret_pos = Vector2D(caret_pos.x % ui.dim.x, caret_pos.y % ui.dim.y)
     ui.paint_cell(highlight_pos, dict(hlit=False))
     highlight_pos = caret_pos
     ui.paint_cell(highlight_pos, dict(hlit=True))

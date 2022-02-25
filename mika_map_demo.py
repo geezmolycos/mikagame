@@ -4,7 +4,7 @@ import attr
 from utilities import Vector2D, List2D, Cardinal
 
 from mika_screen import ScreenCell
-from mika_htmlui import HTMLGameScreen
+from mika_svgui import SVGGameScreen
 
 from styleml.core import StyleMLCoreParser, ReturnCharExtParser
 from styleml.portal_ext import PortalExtParser
@@ -77,7 +77,7 @@ class ModularCharacterDialogue(dialogue.CharacterDialogue):
             self.current_macros = MacroModuleProxy(all_macros=all_macros, base_module=self.module)
             self.next_macros = self.current_macros
 
-scr = HTMLGameScreen()
+scr = SVGGameScreen()
 
 styleml_parser = StyleMLCoreParser(
     ext_parser=[
@@ -92,7 +92,7 @@ styleml_parser = StyleMLCoreParser(
 
 macro_parser = MacroExtParser(core=styleml_parser)
 
-jq("body").append(scr.jq_cont)
+jq("body").append(scr.jq_svg)
 
 dialogue_frame_pos = Vector2D(10, 11)
 dialogue_frame_area = (25, 5)

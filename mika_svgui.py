@@ -15,8 +15,8 @@ def create_svg_elem(name):
 @attr.s
 class SVGGameScreen(GameScreen):
     
-    cell_height = 96
-    cell_width = 96
+    cell_height = 24
+    cell_width = 24
     
     def __attrs_post_init__(self):
         super().__attrs_post_init__()
@@ -50,7 +50,8 @@ class SVGGameScreen(GameScreen):
         return False
     
     def create_svg_base(self):
-        jq_svg = jq(create_svg_elem("svg"))
+        jq_svg = jq(create_svg_elem("svg")).attr("tabindex", -1)
+        jq_svg.on("keydown", create_proxy(lambda e: self.onkeypress_handler_global(e)))
         cell_height, cell_width = self.cell_height, self.cell_width
         cell_slots = {}
         jq_svg.addClass("game-screen")
@@ -85,11 +86,12 @@ class SVGGameScreen(GameScreen):
     @classmethod
     def render_refresh_cell(cls, cell, slots):
         if isinstance(cell.ch, CustomGlyph):
+            slots["text"].empty()
             getattr(cls.CustomGlyphRenderers, cell.ch.type)(cls, cell, slots)
         else:
             slots["custom"].empty()
-            slots["bg"].css("fill", cell.bg)
-            slots["text"].css("fill", cell.fg).text(cell.ch or "")
+            slots["bg"].css("fill", cell.bg if not cell.hlit else cell.fg)
+            slots["text"].css("fill", cell.fg if not cell.hlit else cell.bg).text(cell.ch or "")
             if cell.bold:
                 slots["text"].css("font-weight", "bold")
             if cell.emph:
@@ -162,7 +164,7 @@ class SVGGameScreen(GameScreen):
         @classmethod
         def _c_hz_wrap_text(cls, width, height, text, cell):
             jq_text = jq(create_svg_elem("text")).attr("x", width / 2).attr("y", height / 2)
-            jq_text.text(text).css("fill", cell.fg)
+            jq_text.text(text).css("fill", cell.fg if not cell.hlit else cell.bg)
             if cell.bold:
                 jq_text.css("font-weight", "bold")
             if cell.emph:
@@ -281,9 +283,53 @@ class SVGGameScreen(GameScreen):
         
         @classmethod
         def c_hz(cls, scr, cell, slots):
-            slots["bg"].css("fill", cell.bg)
+            slots["bg"].css("fill", cell.bg if not cell.hlit else cell.fg)
             c = slots["custom"]
             c.empty()
             combined = cls._c_hz_parse_combine(scr.cell_width, scr.cell_height, cell.ch.value, cell)
             c.append(combined)
+        
+        @classmethod
+        def _c_zy_zhuyin_structurize(cls, s):
+            # 「在字母的左下、左上、右上、右下四角加点，以标示四声符号（平、上、去、入）」
+            # 采取方案：左下：阴平，左中：阳平，左上：上声，右上：去声。轻声不标，没有入声
+            if s[-1] in tuple(" ˉˊˇˋ˙"):
+                diao = s[-1]
+                s = s[:-1]
+            else:
+                diao = " "
+            diao_direction = dict(zip(" ˉˊˇˋ˙", "114795"))[diao]
+            if len(s) == 1:
+                return f"&{diao_direction}8{s}&50<$8{'·' if diao != '˙' else ' '}>"
+            elif len(s) == 2:
+                if s[0] in ("ㄧ", "ㄨ", "ㄩ"): # 都是韵母，竖版
+                    return f"&{diao_direction}8|{s}&50<$8{'·' if diao != '˙' else ' '}>"
+                else:
+                    return f"-{s[0]}&{diao_direction}8{s[1]}&50<$8{'·' if diao != '˙' else ' '}>"
+            elif len(s) == 3:
+                return f"-{s[0]}&{diao_direction}8|{s[1] + s[2]}&50<$8{'·' if diao != '˙' else ' '}>"
+            else:
+                raise NotImplementedError()
+            
+        _c_zy_mu_fr = "b,p,m,f,d,t,n,l,g,k,h,j,q,x,zh,ch,sh,r,z,c,s,i,u,w,a,o,e,y,ai,ei,au,eu,an,en,ang,eng,er,1,2,3,4,5".split(",")
+        _c_zy_mu_to = "ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄧㄨㄩㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦˉˊˇˋ˙"
+        _c_zy_mu_lut = dict(zip(_c_zy_mu_fr, _c_zy_mu_to))
 
+        @classmethod
+        def c_zy(cls, scr, cell, slots):
+            zhuyin = ""
+            s = cell.ch.value
+            while len(s) > 0:
+                g = re.match(
+                    r"(er|ang|eng|an|en|au|eu|ai|ei|a|o|e|y|i|u|w|b|p|m|f|d|t|n|l|g|k|h|j|q|x|zh|ch|sh|r|z|c|s|1|2|3|4|5) *(.*)",
+                    s)
+                if g is None:
+                    break
+                mu, s = g[1], g[2]
+                zhuyin += cls._c_zy_mu_lut[mu]
+            st = cls._c_zy_zhuyin_structurize(zhuyin)
+            slots["bg"].css("fill", cell.bg if not cell.hlit else cell.fg)
+            c = slots["custom"]
+            c.empty()
+            combined = cls._c_hz_parse_combine(scr.cell_width, scr.cell_height, st, cell)
+            c.append(combined)

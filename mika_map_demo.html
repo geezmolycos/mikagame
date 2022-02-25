@@ -4,26 +4,13 @@
         <script src="https://cdn.jsdelivr.net/pyodide/v0.19.0/full/pyodide.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
         <style>
-            .game-screen-container {
-                width: 80rem;
-                height: 50rem;
-                font-size: 16pt;
-                white-space: pre-wrap;
+            .game-screen {
                 font-family: monospace;
-                user-select: none;
-            }
-            .game-screen-container div {
-                width: 2rem;
-                height: 2rem;
-                display: inline-block;
-                text-align: center;
-                vertical-align: middle;
-                line-height: 2rem;
             }
         </style>
     </head>
     <body>
-        mika game.<br>
+        Some text.<br>
         <script type="text/javascript">
         async function main(){
             let pyodide = await loadPyodide({
@@ -33,6 +20,7 @@
             await pyodide.runPythonAsync(`
                 from pyodide.http import pyfetch
                 from asyncio import gather
+                from random import random
                 import os
                 def safe_open_wb(path):
                     ''' Open "path" for writing, creating any parent directories as needed.
@@ -43,11 +31,11 @@
                     return open(path, 'wb')
                 async def fetch_py(filename):
                     print(f"fetching py file {filename}")
-                    response = await pyfetch(filename)
+                    response = await pyfetch(filename + "?rnd=" + str(random()))
                     with safe_open_wb(filename) as f:
                         f.write(await response.bytes())
                 
-                py_files = "mika_yaml_scene.py, mika_modules.py, mika_dialogue.py, mika_screen.py, mika_htmlui.py, styleml_mika_exts.py, utilities.py, ./styleml/convenient_argument.py, ./styleml/core.py, ./styleml/macro_ext.py, ./styleml/portal_ext.py"
+                py_files = "styleml_glyph_exts.py, mika_yaml_scene.py, mika_modules.py, mika_dialogue.py, mika_screen.py, mika_svgui.py, styleml_mika_exts.py, utilities.py, ./styleml/convenient_argument.py, ./styleml/core.py, ./styleml/macro_ext.py, ./styleml/portal_ext.py"
                 py_files = py_files.split(", ")
                 await gather(*[fetch_py(fn) for fn in py_files])
 
@@ -63,7 +51,7 @@
                 await gather(*[fetch_py(os.path.join("demo_root", fn)) for fn in all_module_files])
 
             `)
-            pyodide.runPython(await (await fetch("mika_map_demo.py")).text());
+            pyodide.runPython(await (await fetch("mika_map_demo.py" + "?rnd=" + Math.random())).text());
         }
         main();
         </script>

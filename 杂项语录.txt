@@ -61,7 +61,24 @@ this is \!a
 
 \glyphset[c_hz]\g[*辶|穴|--月|--幺言幺--长马长刂心]
 \glyphset[c_hz]\g[%9辶|,穴-,月|幺长|言马|幺长刂.心.]
-\glyphset[c_hz]\def[biang=\\g\[&93辶|<$3穴-<$e月|幺长|言马|幺长$e刂>$3心>\]]\!biang \!biang面
+\glyphset[c_hz]\def[biang={\\glyphset\[c_hz\]\\g\[&93辶|<$3穴-<$e月|幺长|言马|幺长$e刂>$3心>\]}]\!biang \!biang 面
 \glyphset[c_zy]\g[jien1]\g[mau2]\g[ieu3]\g[i4]\g[s5]
 \glyphset[c_hz]\g[*囗|-马来-西亚]
 \glyphset[c_hz]\g[&92&50<$B辶>|<雨-<田田田>-<土土土土土>$6-<|回云$7-<&35&95-$6升 土土&55$C几|<$2一鳥龍>|&43飞土&43飞土>|回云>$7-<山$7|-<風鹿風>&35&15&50<$B土>鹿鹿山>>]
+
+\def[biang={\\glyphset\[c_hz\]\\g\[&93辶|<$3穴-<$e月|幺长|言马|幺长$e刂>$3心>\]}]\
+\def[wo={\\s\[fg=orange\]我}]\
+\def[yun={\\s\[bg=blue\]\\g\[|-白&23广又云\]}]\
+\tick[:0.2]\
+\glyphset[c_hz]{\s[bg=yellow,fg=black]\g[|敬告]}:\!yun \g[|次原]已被{\s[bg=red]\g[-禾皆]}！已被{\s[bg=red]\g[-禾皆]}！
+\g[|<-<本影片故事>-<皆为虚构>-<不代表>-<个人观点>>]！\delayc[:20]
+\!wo 是一个热爱{\s[bg=green]\g[|-生活$2我]}的\g[*囗|-呼和-浩特]大学\g[%7%3<$4生>牛]。\delayc[:8]
+\g[|今天]，\!wo 吃了一{\tickm[;3]碗\!biang \!biang 面}。\delayc[:8]
+递给老板\g[-<?7块7>]，老板给我\g[-<3块?3>]。\delayc[:8]
+\g[|<北口小>]\g[*门?时]6点整，\!wo 打开\!wo 的\g[|-计-示示几]。\delayc[:8]
+\!yun {\s[bg=blue]\g[|-<log>-in]}，发现\g[|次原]已被{\s[bg=red]\g[-禾皆]}！\delayc[:8]
+已被{\s[bg=red]\g[-禾皆]}！\g[*<$C已>]\g[*<$C被>]{\s[bg=red]\g[*<$C-禾皆>]}！\delayc[:8]
+\!wo 热爱\g[-<木学交>]和\g[|隹体]，立志戒除\!yun 。\delayc[:8]
+{\s[fg=black,bg=blue]午夜}在\g[|上床]，\!wo \g[&23宀-爿食]难安。\delayc[:8]
+\tick[:0.1]\!yun 伴\!wo \g[&23宀-叔莫]时光，\!yun 助\!wo \g[&23&50⺍冖-子业]有成！\delayc[:8]
+
