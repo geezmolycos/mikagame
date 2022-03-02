@@ -98,10 +98,6 @@ class StyleMLCoreParser:
     
     ext_parser = attr.ib(factory=list)
     
-    def __attrs_post_init__(self):
-        for parser in self.ext_parser:
-            parser.set_core_parser(self)
-    
     @classmethod
     def tokenize(cls, text, inline_mode=False): # inline_mode不使用多行处理，不截行首行尾，也不除行首空格
         # 处理转义符
@@ -231,11 +227,6 @@ class StyleMLCoreParser:
 
 @attr.s
 class StyleMLExtParser:
-    
-    core = attr.ib(default=None)
-    
-    def set_core_parser(self, core):
-        self.core = core
     
     def transformer(self, tokens):
         return tokens

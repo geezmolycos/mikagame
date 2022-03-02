@@ -44,5 +44,10 @@ The {\s[bg=gray]Most {\s[fg=gold]\tick[:0.4]ALMIGHTY} and {\s[fg=red]\tick[:0.4]
   - 将屏幕分为若干个区域，每个sentence指定要输出到的区域
   - 使用模块化的yaml存储对话，编译到styleml，对话内容仍然使用styleml书写
   - 使用yaml的存储方式，可以调用一些模板（比如「选项」模板、对话次数模板、跳转模板等）
+  - [ ] 在一个sentence里面同步/异步地call另外一个sentence
+    - 容许多个sentence动画同时进行
+    - 中断操作会尝试中断所有正在进行动画的sentence，如果存在不能中断的sentence，会跳过这些sentence
+    - 只有在所有sentence动画都被中断后，才能继续下一个sentence
 - [ ] 书写系统的互相引用
   - 每一种书写系统（glyphset）（至少包括组字的）实现一个渲染到格子的方式（包括默认的）。\g命令的参数先使用styleml parser解析一遍，再使用书写系统渲染器来渲染。
+  - 这样就可以实现单独着色组合字的不同部件了
