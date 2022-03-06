@@ -126,8 +126,8 @@ class LineWrapExtParser(StyleMLExtParser):
 @attr.s
 class AffineTransformExtParser:
     origin = attr.ib(default=Vector2D(0, 0))
-    col_grow = attr.ib(default=Vector2D(1, 0))
-    row_grow = attr.ib(default=Vector2D(0, 1))
+    col_grow = attr.ib(default=Vector2D(0, 1))
+    row_grow = attr.ib(default=Vector2D(1, 0))
     
     def post_renderer(self, tokens):
         transformed_tokens = []
@@ -135,7 +135,7 @@ class AffineTransformExtParser:
             if pos := t.meta.get("pos"):
                 t = attr.evolve(
                     t, meta=(
-                        t.meta | {"pos": pos.affine_transform(self.col_grow, self.row_grow, self.origin)}
+                        t.meta | {"pos": pos.affine_transform(self.row_grow, self.col_grow, self.origin)}
                         )
                     )
             transformed_tokens.append(t)

@@ -4,6 +4,7 @@ import attr
 from utilities import Vector2D
 import mika_modules
 import styleml.convenient_argument as conv
+from styleml.core import StyleMLCoreParser
 from styleml_mika_exts import LineWrapExtParser, AffineTransformExtParser
 
 @attr.s
@@ -22,7 +23,14 @@ class Sentence:
     choice_amount = attr.ib(default=None)
     uninterruptable = attr.ib(default=False)
     pause_after = attr.ib(default=True)
+    call_conv = attr.ib(default=None)
+    return_conv = attr.ib(default=None)
+    clear_region_conv = attr.ib(default=None)
     meta = attr.ib(factory=dict)
+    
+    def __attrs_post_init__(self):
+        if isinstance(self.content_tokens, str):
+            self.content_tokens = StyleMLCoreParser.tokenize(self.content_tokens)
     
     @property
     def has_choices(self):
@@ -31,6 +39,7 @@ class Sentence:
 @attr.s
 class ModularMacroProxy:
     global_macros = attr.ib(factory=dict)
+    stage = attr.ib(factory=dict)
     base_module = attr.ib(default="")
     
     def __getitem__(self, macro_name):
@@ -75,9 +84,11 @@ class RegionalDialogueManager:
     macros = attr.ib(factory=dict)
     macro_parser = attr.ib(default=None)
     postmacro_parser = attr.ib(default=None)
-    line_wrap_parser = attr.ib(default=None)
     current_sentence_name = attr.ib(default=None)
     next_sentence_name = attr.ib(default=None)
+    is_next_sentence_call = attr.ib(default=False)
+    is_next_sentence_return = attr.ib(default=False)
+    call_stack = attr.ib(factory=list)
     
     @property
     def current_sentence(self):
@@ -94,6 +105,8 @@ class RegionalDialogueManager:
             name,
             conv.parse_convenient_obj_repr(s.next_conv, macros=macros)
         )
+        self.is_next_sentence_call = conv.parse_convenient_obj_repr(s.call_conv, macros=macros)
+        self.is_next_sentence_return = conv.parse_convenient_obj_repr(s.return_conv, macros=macros)
         rendered = self.postmacro_parser.render(self.postmacro_parser.transform(expanded))
         region = self.screen_regions[conv.parse_convenient_obj_repr(s.region_conv, macros=macros)]
         line_wrapped = LineWrapExtParser(region.size, only_printable=False).post_renderer(rendered)
@@ -102,6 +115,11 @@ class RegionalDialogueManager:
         return transformed
     
     def next_sentence(self):
-        self.current_sentence_name = self.next_sentence_name
+        if self.is_next_sentence_call:
+            self.call_stack.append(self.current_sentence_name)
+        if self.is_next_sentence_return:
+            self.current_sentence_name = self.call_stack.pop()
+        else:
+            self.current_sentence_name = self.next_sentence_name
 
     
