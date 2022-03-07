@@ -18,23 +18,22 @@ class ScreenRegion:
 class Sentence:
     
     content_tokens = attr.ib(default=None)
-    region_conv = attr.ib(default=None)
+    region_conv = attr.ib(default="?")
     next_conv = attr.ib(default=None)
-    choice_amount = attr.ib(default=None)
-    uninterruptable = attr.ib(default=False)
-    pause_after = attr.ib(default=True)
-    call_conv = attr.ib(default=None)
-    return_conv = attr.ib(default=None)
-    clear_region_conv = attr.ib(default=None)
+    choice_amount_conv = attr.ib(default="?")
+    uninterruptable_conv = attr.ib(default=False)
+    pause_after_conv = attr.ib(default=True)
+    call_conv = attr.ib(default="?")
+    return_conv = attr.ib(default="-")
+    clear_region_conv = attr.ib(default="+")
     meta = attr.ib(factory=dict)
     
     def __attrs_post_init__(self):
         if isinstance(self.content_tokens, str):
             self.content_tokens = StyleMLCoreParser.tokenize(self.content_tokens)
+        if self.content_tokens is None:
+            self.content_tokens = []
     
-    @property
-    def has_choices(self):
-        return self.choice_amount is not None
 
 @attr.s
 class ModularMacroProxy:
@@ -98,8 +97,7 @@ class RegionalDialogueManager:
         s = self.current_sentence
         name = self.current_sentence_name
         proxy = ModularMacroProxy(global_macros=self.macros, base_module=name)
-        if s.has_choices:
-            proxy[".choice"] = choice
+        proxy[".choice"] = choice
         expanded, macros = self.macro_parser.expand_and_get_defined_macros(s.content_tokens, proxy)
         self.next_sentence_name = mika_modules.resolve_module_ref(
             name,
@@ -113,6 +111,11 @@ class RegionalDialogueManager:
         transformed = AffineTransformExtParser(origin=region.origin, col_grow=region.col_grow, row_grow=region.row_grow).post_renderer(line_wrapped)
         macros.merge()
         return transformed
+
+    def current_conv(self, attr_name):
+        name = self.current_sentence_name
+        proxy = ModularMacroProxy(global_macros=self.macros, base_module=name)
+        return conv.parse_convenient_obj_repr(getattr(self.current_sentence, attr_name), macros=proxy)
     
     def next_sentence(self):
         if self.is_next_sentence_call:
