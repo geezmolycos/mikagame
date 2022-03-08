@@ -1,6 +1,7 @@
 import mika_svgui
 import styleml.core, styleml.macro_ext, styleml.portal_ext
 import styleml_mika_exts, styleml_glyph_exts
+import mika_yaml_dialogue
 
 import mika_regional_dialogue
 
@@ -33,31 +34,42 @@ map_region = mika_regional_dialogue.ScreenRegion(
 )
 
 manager = mika_regional_dialogue.RegionalDialogueManager(
-    sentences={
-        "_init": mika_regional_dialogue.Sentence(
-            content_tokens=styleml_parser.tokenize("abcde"),
-            region_conv="=speech",
-            next_conv="=a",
-            choice_amount=None,
-        ),
-        "a": mika_regional_dialogue.Sentence(
-            content_tokens=styleml_parser.tokenize("hhh"),
-            region_conv="=map",
-            next_conv="=_init",
-            choice_amount=None,
-        )
-    },
+    sentences=mika_yaml_dialogue.parse_mikad_module("a.c", """
+char:
+    default:
+        region_conv: "=speech"
+    st:
+        - 今天是个好日子
+        - 心想的事儿都能成
+mmm:
+    default:
+        region_conv: "=map"
+    st:
+        -
+            _template: choice
+            desc: 描述
+            choices:
+                - j,...char.0,走
+                - j,.,此
+"""
+    ),
     screen_regions={
         "speech": speech_region,
         "map": map_region
     },
     macro_parser=styleml.macro_ext.MacroExtParser(),
     postmacro_parser=styleml_parser,
-    current_sentence_name="_init"
+    current_sentence_name="a.c.mmm.0"
 )
 
-print(manager)
-manager.eval_sentence()
+print(manager.sentences)
+
+def _(code, ctrl, shift, alt):
+    manager.next_sentence()
+    scr.print_tokens(manager.eval_sentence(), origin=Vector2D(0, 0))
+
+scr.registered_onkeypress.append(_)
+scr.print_tokens(manager.eval_sentence(), origin=Vector2D(0, 0))
+manager.eval_sentence(choice=0)
 manager.next_sentence()
 scr.print_tokens(manager.eval_sentence(), origin=Vector2D(0, 0))
-

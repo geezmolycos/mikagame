@@ -19,7 +19,7 @@ class Sentence:
     
     content_tokens = attr.ib(default=None)
     region_conv = attr.ib(default="?")
-    next_conv = attr.ib(default=None)
+    next_conv = attr.ib(default="?")
     choice_amount_conv = attr.ib(default="?")
     uninterruptable_conv = attr.ib(default=False)
     pause_after_conv = attr.ib(default=True)
@@ -105,12 +105,15 @@ class RegionalDialogueManager:
         )
         self.is_next_sentence_call = conv.parse_convenient_obj_repr(s.call_conv, macros=macros)
         self.is_next_sentence_return = conv.parse_convenient_obj_repr(s.return_conv, macros=macros)
-        rendered = self.postmacro_parser.render(self.postmacro_parser.transform(expanded))
-        region = self.screen_regions[conv.parse_convenient_obj_repr(s.region_conv, macros=macros)]
-        line_wrapped = LineWrapExtParser(region.size, only_printable=False).post_renderer(rendered)
-        transformed = AffineTransformExtParser(origin=region.origin, col_grow=region.col_grow, row_grow=region.row_grow).post_renderer(line_wrapped)
         macros.merge()
-        return transformed
+        rendered = self.postmacro_parser.render(self.postmacro_parser.transform(expanded))
+        region_name = conv.parse_convenient_obj_repr(s.region_conv, macros=macros)
+        if region_name is not None: # 如果region_name是None，则不打印字符
+            region = self.screen_regions[region_name]
+            line_wrapped = LineWrapExtParser(region.size, only_printable=False).post_renderer(rendered)
+            transformed = AffineTransformExtParser(origin=region.origin, col_grow=region.col_grow, row_grow=region.row_grow).post_renderer(line_wrapped)
+            return transformed
+        return []
 
     def current_conv(self, attr_name):
         name = self.current_sentence_name

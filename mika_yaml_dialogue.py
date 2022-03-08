@@ -10,19 +10,21 @@ class TemplateClassProxy:
         return getattr(self.target, key)
 class Templates:
     
-    def choice(self, desc):
+    def choice(self, para_full_name, i, desc):
         """
         一个choice需要一个描述，一个list存储其中的选项
         这些选项包括跳转(jump)或调用(call)模式。
         """
+        this_name = mika_modules.resolve_module_ref(para_full_name, "." + str(i))
         content = desc["desc"] + "\n"
         choices = desc["choices"]
-        for i, ch in enumerate(choices):
+        for choice_i, ch in enumerate(choices):
             ch_mode, ch_target, *ch_desc = ch.split(",")
             ch_desc = ",".join(ch_desc)
             iscall_conv = "+" if ch_mode == "c" else "-"
-            content += fr"\ifelse[a!.choice,b;{i},then=\\def\[.target={ch_target}\]\\def\[.iscall{iscall_conv}\]]"
+            content += fr"\ifelse[a!.choice,b;{choice_i},then=\\def\[.target={ch_target}\]\\def\[.iscall{iscall_conv}\]]"
             content += ch_desc
+        content += fr"\ifelse[a!.choice,b?,then=\\def\[.target={this_name}\]\\def\[.iscall-\]]"
         return {
             "content_tokens": content,
             "next_conv": "!.target",
@@ -34,7 +36,7 @@ class Derivers:
     
     def paragraph_level_jumper(self, para_full_name, i, desc):
         para_level_ref_sentence = mika_regional_dialogue.Sentence(
-            next_conv=mika_modules.resolve_module_ref(para_full_name, "." + i),
+            next_conv="="+mika_modules.resolve_module_ref(para_full_name, "." + str(i)),
             uninterruptable=True,
             pause_after=False,
         )
@@ -68,7 +70,7 @@ def parse_mikad_module(
                     template_to_apply_names = [template_to_apply_names]
                 s = default | s
                 for t in template_to_apply_names:
-                    s = template_transformers[t](s)
+                    s = template_transformers[t](para_full_name, i, s)
                 # 应用deriver
                 deriver_to_apply_names = s.get("_deriver") or default.get("_deriver", [])
                 if not isinstance(deriver_to_apply_names, list):
