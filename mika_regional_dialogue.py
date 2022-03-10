@@ -4,7 +4,7 @@ import attr
 from utilities import Vector2D
 import mika_modules
 import styleml.convenient_argument as conv
-from styleml.core import StyleMLCoreParser
+from styleml.core import StyleMLCoreParser, StyleMLExtParser, CommandToken, Token
 from styleml_mika_exts import LineWrapExtParser, AffineTransformExtParser
 
 @attr.s
@@ -128,4 +128,28 @@ class RegionalDialogueManager:
         else:
             self.current_sentence_name = self.next_sentence_name
 
+@attr.s
+class InterSentenceCallToken(Token):
+    pass
+
+@attr.s
+class InterSentenceCallExtParser(StyleMLExtParser):
+    r"""
+    \stcall[] - 
+    \stcallsync[]
+    """
     
+    initial_tick = attr.ib(default=0)
+    
+    def transformer(self, tokens):
+        transformed_tokens = []
+        for t in tokens:
+            if isinstance(t, CommandToken) and t.value in ("stcall", "stcallsync"):
+                argument = t.meta.get("argument")
+                target = conv.parse_convenient_obj_repr(argument, macros=t.meta.get("macros") or {})
+                transformed_tokens.append(InterSentenceCallToken(
+                    value={"is_sync": t.value == "stcallsync", "target": target}
+                ))
+            else:
+                transformed_tokens.append(t)
+        return transformed_tokens

@@ -35,13 +35,13 @@ map_region = mika_regional_dialogue.ScreenRegion(
 
 manager = mika_regional_dialogue.RegionalDialogueManager(
     sentences=mika_yaml_dialogue.parse_mikad_module("a.c", """
-char:
+.char:
     default:
         region_conv: "=speech"
     st:
         - 今天是个好日子
         - 心想的事儿都能成
-mmm:
+.mmm:
     default:
         region_conv: "=map"
     st:
@@ -49,7 +49,7 @@ mmm:
             _template: choice
             desc: 描述
             choices:
-                - j,...char.0,走
+                - j,.<c.char.0,走
                 - j,.,此
 """
     ),

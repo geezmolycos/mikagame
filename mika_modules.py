@@ -38,12 +38,17 @@ def resolve_module_ref(current_module_name, ref_module_name):
                 abs_stack.pop()
             except IndexError as e:
                 raise ValueError("relative module reference beyond root module") from e
+        elif it[0] == "<":
+            # backtrack
+            search_for = it[1:]
+            while abs_stack[-1] != search_for:
+                abs_stack.pop()
         else:
             abs_stack.append(it)
     return ".".join(abs_stack)
 
 if __name__ == "__main__":
     a = "a.b.c.d"
-    r = "."
+    r = ".<b.e"
     print(resolve_module_ref(a,r))
-    print(walk_modules("./demo_root"))
+    #print(walk_modules("./demo_root"))

@@ -24,6 +24,7 @@ class Templates:
             iscall_conv = "+" if ch_mode == "c" else "-"
             content += fr"\ifelse[a!.choice,b;{choice_i},then=\\def\[.target={ch_target}\]\\def\[.iscall{iscall_conv}\]]"
             content += ch_desc
+            content += "\n"
         content += fr"\ifelse[a!.choice,b?,then=\\def\[.target={this_name}\]\\def\[.iscall-\]]"
         return {
             "content_tokens": content,
@@ -53,7 +54,7 @@ def parse_mikad_module(
     content = yaml.safe_load(content)
     sentence_pool = {}
     for para_name, para_content in content.items():
-        para_full_name = mika_modules.resolve_module_ref(module_name, "." + para_name)
+        para_full_name = mika_modules.resolve_module_ref(module_name, para_name)
         default = para_content.get("default", {})
         sentences = para_content["st"]
         for i, s in enumerate(sentences):
