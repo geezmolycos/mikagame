@@ -21,6 +21,7 @@ jq("body").append(scr.jq_svg)
 
 styleml_parser = styleml.core.StyleMLCoreParser(
     ext_parser=[
+        mika_regional_dialogue.InterSentenceCallExtParser(),
         styleml.portal_ext.PortalExtParser(),
         styleml_glyph_exts.GlyphsetExtParser(),
         styleml_mika_exts.AnimationExtParser(initial_tick=0.07),
@@ -40,13 +41,18 @@ map_region = mika_regional_dialogue.ScreenRegion(
 )
 
 manager = mika_regional_dialogue.RegionalDialogueManager(
-    sentences=mika_yaml_dialogue.parse_mikad_module("a.c", """
+    sentences=mika_yaml_dialogue.parse_mikad_module("a.c", r"""
 .char:
     default:
         region_conv: "=speech"
     st:
         - 今天是个好日子
-        - 心想的事儿都能成
+        - '心想的事儿都能成，\stcallsync[=a.c.call.0]心想的事儿都能成'
+.call:
+    default:
+        region_conv: "=map"
+    st:
+        - 你好我好大家好
 .mmm:
     default:
         region_conv: "=map"
@@ -155,12 +161,16 @@ def add_print_tokens_animation(tokens, base_sentence_name, meta):
     )
 
 async def async_inter_sentence_caller(sentence_name):
-    i = add_print_tokens_animation(
-        manager.intercall_eval_sentence(sentence_name),
-        sentence_name,
-        meta={"sentence_name": sentence_name}
-    )
-    await animation_pool.start_animation(i)
+    try:
+        i = add_print_tokens_animation(
+            manager.intercall_eval_sentence(sentence_name),
+            sentence_name,
+            meta={"sentence_name": sentence_name}
+        )
+        await animation_pool.start_animation(i)
+    except Exception:
+        import traceback
+        traceback.print_exc()
 
 async def render_current_sentence():
     try:

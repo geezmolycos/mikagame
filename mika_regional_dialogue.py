@@ -131,7 +131,7 @@ class RegionalDialogueManager:
             self.current_sentence_name = self.next_sentence_name
     
     def intercall_eval_sentence(self, sentence_name, choice=None):
-        s = self.sentence[sentence_name]
+        s = self.sentences[sentence_name]
         proxy = ModularMacroProxy(global_macros=self.macros, base_module=sentence_name)
         proxy[".choice"] = choice
         expanded, macros = self.macro_parser.expand_and_get_defined_macros(s.content_tokens, proxy)
