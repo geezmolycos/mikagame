@@ -114,11 +114,13 @@ class RegionalDialogueManager:
             transformed = AffineTransformExtParser(origin=region.origin, col_grow=region.col_grow, row_grow=region.row_grow).post_renderer(line_wrapped)
             return transformed
         return []
+    
+    def eval_conv(self, sentence_name, attr_name):
+        proxy = ModularMacroProxy(global_macros=self.macros, base_module=sentence_name)
+        return conv.parse_convenient_obj_repr(getattr(self.current_sentence, attr_name), macros=proxy)
 
     def current_conv(self, attr_name):
-        name = self.current_sentence_name
-        proxy = ModularMacroProxy(global_macros=self.macros, base_module=name)
-        return conv.parse_convenient_obj_repr(getattr(self.current_sentence, attr_name), macros=proxy)
+        return self.eval_conv(self.current_sentence_name, attr_name)
     
     def next_sentence(self):
         if self.is_next_sentence_call:
@@ -127,6 +129,20 @@ class RegionalDialogueManager:
             self.current_sentence_name = self.call_stack.pop()
         else:
             self.current_sentence_name = self.next_sentence_name
+    
+    def intercall_eval_sentence(self, sentence_name, choice=None):
+        s = self.sentence[sentence_name]
+        proxy = ModularMacroProxy(global_macros=self.macros, base_module=sentence_name)
+        proxy[".choice"] = choice
+        expanded, macros = self.macro_parser.expand_and_get_defined_macros(s.content_tokens, proxy)
+        rendered = self.postmacro_parser.render(self.postmacro_parser.transform(expanded))
+        region_name = conv.parse_convenient_obj_repr(s.region_conv, macros=macros)
+        if region_name is not None: # 如果region_name是None，则不打印字符
+            region = self.screen_regions[region_name]
+            line_wrapped = LineWrapExtParser(region.size, only_printable=False).post_renderer(rendered)
+            transformed = AffineTransformExtParser(origin=region.origin, col_grow=region.col_grow, row_grow=region.row_grow).post_renderer(line_wrapped)
+            return transformed
+        return []
 
 @attr.s
 class InterSentenceCallToken(Token):
@@ -148,7 +164,8 @@ class InterSentenceCallExtParser(StyleMLExtParser):
                 argument = t.meta.get("argument")
                 target = conv.parse_convenient_obj_repr(argument, macros=t.meta.get("macros") or {})
                 transformed_tokens.append(InterSentenceCallToken(
-                    value={"is_sync": t.value == "stcallsync", "target": target}
+                    value={"is_sync": t.value == "stcallsync", "target": target},
+                    meta={"post_delay": -1}
                 ))
             else:
                 transformed_tokens.append(t)

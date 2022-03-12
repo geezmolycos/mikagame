@@ -59,7 +59,7 @@ class GameScreen:
             post_delay = t.meta.get("post_delay", 0)
             self.print_token(t, origin, mati, matj)
             if post_delay != 0 and waiter is not None:
-                should_continue = await waiter(post_delay)
+                should_continue = await waiter(post_delay, t)
                 if not should_continue:
                     return i
         return None

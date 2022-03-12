@@ -22,7 +22,7 @@ class Waiter:
     instant = attr.ib(default=False)
     update_event = attr.ib(factory=asyncio.Event)
     
-    async def __call__(self, time):
+    async def __call__(self, time, t=None):
         if self.interrupted:
             return False
         if self.instant:
