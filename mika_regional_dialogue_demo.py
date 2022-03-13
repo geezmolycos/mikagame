@@ -74,6 +74,13 @@ manager = mika_regional_dialogue.RegionalDialogueManager(
     current_sentence_name="a.c.char.0"
 )
 
+def clear_region(region_name):
+    region = manager.screen_regions[region_name]
+    for y in range(region.size.y):
+        for x in range(region.size.x):
+            pos = region.origin + Vector2D(x, y)
+            scr.print_cell(pos, None)
+
 @attr.s
 class AnimationWrapper:
     task = attr.ib(default=None)
@@ -124,15 +131,16 @@ class InterSentenceWaiter:
     async def __call__(self, time, t=None):
         if self.interrupted:
             return False
-        if self.instant:
-            return True
         if isinstance(t, mika_regional_dialogue.InterSentenceCallToken):
             is_sync, target = t.value["is_sync"], t.value["target"]
             t = asyncio.create_task(self.async_inter_sentence_caller(
-                mika_modules.resolve_module_ref(self.base_sentence_name, target)
+                mika_modules.resolve_module_ref(self.base_sentence_name, target),
+                instant=self.instant
             ))
             if is_sync:
                 await t
+        if self.instant:
+            return True
         done, pending = await asyncio.wait([
             asyncio.create_task(asyncio.sleep(time)),
             asyncio.create_task(self.update_event.wait()),
@@ -145,10 +153,11 @@ class InterSentenceWaiter:
 
 animation_pool = AnimationManager()
 
-def add_print_tokens_animation(tokens, base_sentence_name, meta):
+def add_print_tokens_animation(tokens, base_sentence_name, meta, instant=False):
     waiter = InterSentenceWaiter(
         async_inter_sentence_caller=async_inter_sentence_caller,
-        base_sentence_name=base_sentence_name
+        base_sentence_name=base_sentence_name,
+        instant=instant
     )
     meta["waiter"] = waiter
     return animation_pool.add_animation(
@@ -160,12 +169,15 @@ def add_print_tokens_animation(tokens, base_sentence_name, meta):
         )
     )
 
-async def async_inter_sentence_caller(sentence_name):
+async def async_inter_sentence_caller(sentence_name, instant=False):
     try:
+        if manager.eval_conv(sentence_name, "clear_region_conv"):
+            clear_region(manager.eval_conv(sentence_name, "region_conv"))
         i = add_print_tokens_animation(
             manager.intercall_eval_sentence(sentence_name),
             sentence_name,
-            meta={"sentence_name": sentence_name}
+            meta={"sentence_name": sentence_name},
+            instant=instant
         )
         await animation_pool.start_animation(i)
     except Exception:
@@ -174,6 +186,8 @@ async def async_inter_sentence_caller(sentence_name):
 
 async def render_current_sentence():
     try:
+        if manager.current_conv("clear_region_conv"):
+            clear_region(manager.current_conv("region_conv"))
         i = add_print_tokens_animation(
             manager.eval_sentence(),
             manager.current_sentence_name,
@@ -189,11 +203,17 @@ def next_sentence():
     asyncio.create_task(render_current_sentence())
 
 def try_skip_animation():
-    if len(animation_pool.pool) > 0:
-        for anim_id, wrapper in animation_pool.pool.items():
-            wrapper.meta["waiter"].instant = True
-            wrapper.meta["waiter"].update_event.set()
+    for anim_id, wrapper in animation_pool.pool.items():
+        wrapper.meta["waiter"].instant = True
+        wrapper.meta["waiter"].update_event.set()
         
 asyncio.create_task(render_current_sentence())
 
-scr.registered_onkeypress.append(lambda key, ctrl, shift, alt: next_sentence())
+
+def _():
+    if len(animation_pool.pool) > 0:
+        try_skip_animation()
+    else:
+        next_sentence()
+
+scr.registered_onkeypress.append(lambda key, ctrl, shift, alt: _())

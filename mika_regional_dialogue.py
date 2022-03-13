@@ -117,7 +117,7 @@ class RegionalDialogueManager:
     
     def eval_conv(self, sentence_name, attr_name):
         proxy = ModularMacroProxy(global_macros=self.macros, base_module=sentence_name)
-        return conv.parse_convenient_obj_repr(getattr(self.current_sentence, attr_name), macros=proxy)
+        return conv.parse_convenient_obj_repr(getattr(self.sentences[sentence_name], attr_name), macros=proxy)
 
     def current_conv(self, attr_name):
         return self.eval_conv(self.current_sentence_name, attr_name)
