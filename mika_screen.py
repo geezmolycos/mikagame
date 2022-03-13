@@ -22,13 +22,20 @@ class ScreenCell:
 class GameScreen:
     map = attr.ib(init=False)
     dim = attr.ib(default=Vector2D(40, 25))
+    background = attr.ib(default=ScreenCell())
     
     def __attrs_post_init__(self):
         self.clear_screen()
+    
+    def get_background_cell(self, pos):
+        if isinstance(self.background, ScreenCell):
+            return self.background
+        else:
+            return self.background.get_display_cell(pos)
 
     def get_display_cell(self, pos):
         c = self.map[pos]
-        c = c or ScreenCell()
+        c = c or self.get_background_cell(pos)
         return c
 
     def print_cell(self, pos, cell):
