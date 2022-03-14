@@ -26,7 +26,7 @@ The {\s[bg=gray]Most {\s[fg=gold]\tick[:0.4]ALMIGHTY} and {\s[fg=red]\tick[:0.4]
   - 一个格子中可以放2个半角字符，采用自定义字符来实现。再实现自动转换成半角字符的命令
 - [x] (已更改实现方式)人物头像及表情
   - 加入一个特定的绝对坐标引用，表示放头像的地方，然后头像直接使用行内的重定位显示，就不需要写单独的功能了。
-- [ ] 区域性dialogue
+- [x] 区域性dialogue
   - 将屏幕分为若干个区域，每个sentence指定要输出到的区域
   - [x] 使用模块化的yaml存储对话，编译到styleml，对话内容仍然使用styleml书写
     - 使用模块的方式组织文件，每个文件包含一个yaml dict，其中的每一项表示一个「段落」，段落是若干个sentence的列表，第i个句子会获得(模块名).(段落名).(序号)的全局名称(label)
@@ -37,7 +37,7 @@ The {\s[bg=gray]Most {\s[fg=gold]\tick[:0.4]ALMIGHTY} and {\s[fg=red]\tick[:0.4]
     - 容许多个sentence动画同时进行
     - 中断操作会尝试中断所有正在进行动画的sentence，如果存在不能中断的sentence，会跳过这些sentence
     - 只有在所有sentence动画都被中断后，才能继续下一个sentence
-  - [ ] 接续call sentence
+  - [x] 接续call sentence
     - call sentence时，直到return为止
 - [ ] 书写系统的互相引用
   - 每一种书写系统（glyphset）（至少包括组字的）实现一个渲染到格子的方式（包括默认的）。\g命令的参数先使用styleml parser解析一遍，再使用书写系统渲染器来渲染。

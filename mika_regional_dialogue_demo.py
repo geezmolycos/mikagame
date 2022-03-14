@@ -56,6 +56,7 @@ manager = mika_regional_dialogue.RegionalDialogueManager(
         region_conv: "=map"
     st:
         - 你好我好大家好
+        - 他好我也好
 .mmm:
     default:
         region_conv: "=map"
@@ -136,12 +137,13 @@ class InterSentenceWaiter:
             return False
         if isinstance(t, mika_regional_dialogue.InterSentenceCallToken):
             is_sync, target = t.value["is_sync"], t.value["target"]
-            t = asyncio.create_task(self.async_inter_sentence_caller(
+            task = asyncio.create_task(self.async_inter_sentence_caller(
                 mika_modules.resolve_module_ref(self.base_sentence_name, target),
-                instant=self.instant
+                instant=self.instant,
+                macros=t.meta["macros"]
             ))
             if is_sync:
-                await t
+                await task
         if self.instant:
             return True
         done, pending = await asyncio.wait([
@@ -172,14 +174,18 @@ def add_print_tokens_animation(tokens, base_sentence_name, meta, instant=False):
         )
     )
 
-async def async_inter_sentence_caller(sentence_name, instant=False):
+async def async_inter_sentence_caller(sentence_name, instant=False, macros=None):
+    fork_manager = manager.fork_from_inter_sentence_call(sentence_name=sentence_name, macros=macros)
+    await consequent_next_sentence(fork_manager, first=True, skip_pause=True, instant=instant)
+
+async def render_current_sentence(manager, instant=False):
     try:
-        if manager.eval_conv(sentence_name, "clear_region_conv"):
-            clear_region(manager.eval_conv(sentence_name, "region_conv"))
+        if manager.current_conv("clear_region_conv"):
+            clear_region(manager.current_conv("region_conv"))
         i = add_print_tokens_animation(
-            manager.intercall_eval_sentence(sentence_name),
-            sentence_name,
-            meta={"sentence_name": sentence_name},
+            manager.eval_sentence(),
+            manager.current_sentence_name,
+            meta={"sentence_name": manager.current_sentence_name},
             instant=instant
         )
         await animation_pool.start_animation(i)
@@ -187,34 +193,23 @@ async def async_inter_sentence_caller(sentence_name, instant=False):
         import traceback
         traceback.print_exc()
 
-async def render_current_sentence():
-    try:
-        if manager.current_conv("clear_region_conv"):
-            clear_region(manager.current_conv("region_conv"))
-        i = add_print_tokens_animation(
-            manager.eval_sentence(),
-            manager.current_sentence_name,
-            meta={"sentence_name": manager.current_sentence_name}
-        )
-        await animation_pool.start_animation(i)
-    except Exception:
-        import traceback
-        traceback.print_exc()
-
-def next_sentence(first=False):
-    async def consequent_next():
+async def consequent_next_sentence(manager, first=False, skip_pause=False, instant=False):
+    if not first:
         try:
-            if not first:
-                manager.next_sentence()
-            while True:
-                await render_current_sentence()
-                if manager.current_conv("pause_after_conv"):
-                    break
-                manager.next_sentence()
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-    asyncio.create_task(consequent_next())
+            manager.next_sentence()
+        except IndexError:
+            return
+    while True:
+        await render_current_sentence(manager, instant=instant)
+        if manager.current_conv("pause_after_conv") and not skip_pause:
+            break
+        try:
+            manager.next_sentence()
+        except IndexError:
+            return
+
+def main_start_next_sentence(first=False):
+    asyncio.create_task(consequent_next_sentence(manager, first=first))
 
 def try_skip_animation():
     for anim_id, wrapper in animation_pool.pool.items():
@@ -222,12 +217,12 @@ def try_skip_animation():
             wrapper.meta["waiter"].instant = True
             wrapper.meta["waiter"].update_event.set()
         
-next_sentence(True)
+main_start_next_sentence(True)
 
 def _():
     if len(animation_pool.pool) > 0:
         try_skip_animation()
     else:
-        next_sentence()
+        main_start_next_sentence()
 
 scr.registered_onkeypress.append(lambda key, ctrl, shift, alt: _())

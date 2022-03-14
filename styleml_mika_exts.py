@@ -59,7 +59,6 @@ class AnimationExtParser(StyleMLExtParser):
             elif isinstance(t, CommandToken) and t.value == "tickm":
                 argument = t.meta.get("argument")
                 step_tick_multiplier[-1] = parse_convenient_obj_repr(argument, macros=t.meta.get("macros") or {})
-                print(step_tick_multiplier)
             elif isinstance(t, CommandToken) and t.value == "delay":
                 delay = parse_convenient_obj_repr(t.meta.get("argument"), macros=t.meta.get("macros") or {})
                 transformed_tokens.append(Token(meta={"post_delay": delay}))
