@@ -46,7 +46,10 @@ manager = mika_regional_dialogue.RegionalDialogueManager(
     default:
         region_conv: "=speech"
     st:
-        - 今天是个好日子
+        - 
+            content_tokens: 今天是个好日子
+            pause_after_conv: "-"
+            uninterruptable_conv: "+"
         - '心想的事儿都能成，\stcallsync[=a.c.call.0]心想的事儿都能成'
 .call:
     default:
@@ -198,17 +201,28 @@ async def render_current_sentence():
         import traceback
         traceback.print_exc()
 
-def next_sentence():
-    manager.next_sentence()
-    asyncio.create_task(render_current_sentence())
+def next_sentence(first=False):
+    async def consequent_next():
+        try:
+            if not first:
+                manager.next_sentence()
+            while True:
+                await render_current_sentence()
+                if manager.current_conv("pause_after_conv"):
+                    break
+                manager.next_sentence()
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+    asyncio.create_task(consequent_next())
 
 def try_skip_animation():
     for anim_id, wrapper in animation_pool.pool.items():
-        wrapper.meta["waiter"].instant = True
-        wrapper.meta["waiter"].update_event.set()
+        if not manager.eval_conv(wrapper.meta["sentence_name"], "uninterruptable_conv"):
+            wrapper.meta["waiter"].instant = True
+            wrapper.meta["waiter"].update_event.set()
         
-asyncio.create_task(render_current_sentence())
-
+next_sentence(True)
 
 def _():
     if len(animation_pool.pool) > 0:

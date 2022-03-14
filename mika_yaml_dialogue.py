@@ -69,7 +69,10 @@ def parse_mikad_module(
                 template_to_apply_names = s.get("_template") or default.get("_template", [])
                 if not isinstance(template_to_apply_names, list):
                     template_to_apply_names = [template_to_apply_names]
-                s = default | s
+                s = default | dict(
+                    next_conv="=" + ".." + str(i + 1),
+                    return_conv="+" if i == len(sentences) - 1 else "-"
+                ) | s
                 for t in template_to_apply_names:
                     s = template_transformers[t](para_full_name, i, s)
                 # 应用deriver
