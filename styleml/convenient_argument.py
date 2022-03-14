@@ -57,5 +57,3 @@ def parse_convenient_list(s, delimiter="|", lower=lambda x: x):
         arguments.append(obj)
     return arguments
 
-#TODO: 写宏调用类型符
-# 每一个token类型，设置一个「需要此时宏」的标记，如果需要宏，在宏解析的时候，就给它复制一份
