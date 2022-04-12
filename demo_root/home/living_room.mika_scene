@@ -1,5 +1,0 @@
-description: 这里是客厅。顾名思义，是会见客人的地方。你宁愿待在卧室中。沙发上坐着你的朋友，准备今天和你一起玩游戏。
-connected_to:
-  ..bedroom: 去走廊
-characters:
-  ..friend: 与朋友对话

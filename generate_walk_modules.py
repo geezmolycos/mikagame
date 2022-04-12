@@ -4,7 +4,7 @@
 import mika_modules
 import json
 
-root = "demo_root"
+root = "resources/modules"
 
 modules = mika_modules.walk_modules(root)
 

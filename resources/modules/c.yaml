@@ -1,0 +1,35 @@
+.char:
+    default:
+        region_conv: "=speech"
+    st:
+        - 
+            content_tokens: 今天是个好日子
+            pause_after_conv: "-"
+            uninterruptable_conv: "+"
+        - '心想的事儿都能成，\stcallsync[=.<c.call.0]心想的事儿都能成'
+.call:
+    default:
+        region_conv: "=map"
+    st:
+        - 你好我好大家好
+        - 他好我也好
+.demoseq:
+    default:
+        region_conv: "=speech"
+    st:
+        - 我是呼和浩特大学生
+        - 我今天下载度云
+        - 我碰到了比特幕
+        - 我马上就要下线了
+        - 在学校里面进行冒险，比网上冲浪好玩多了。
+.mmm:
+    default:
+        region_conv: "=map"
+    st:
+        -
+            _template: choice
+            desc: 描述
+            choices:
+                - c,.<c.char.0,走
+                - j,.,此
+                - c,.<c.demoseq.0,听听说话

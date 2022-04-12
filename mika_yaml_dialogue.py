@@ -16,15 +16,15 @@ class Templates:
         这些选项包括跳转(jump)或调用(call)模式。
         """
         this_name = mika_modules.resolve_module_ref(para_full_name, "." + str(i))
-        content = desc["desc"] + "\n"
+        content = r"\!choiceanim " + desc["desc"] + "\n"
         choices = desc["choices"]
         for choice_i, ch in enumerate(choices):
             ch_mode, ch_target, *ch_desc = ch.split(",")
             ch_desc = ",".join(ch_desc)
             iscall_conv = "+" if ch_mode == "c" else "-"
-            content += fr"\ifelse[a!.choice,b;{choice_i},then=\\def\[.target={ch_target}\]\\def\[.iscall{iscall_conv}\]]"
+            content += fr"{{\ifelse[a!.choice,b;{choice_i},then=\\def\[.target={ch_target}\]\\def\[.iscall{iscall_conv}\]\\!chosen ,else=\\!unchosen ]"
             content += ch_desc
-            content += "\n"
+            content += "}\n"
         content += fr"\ifelse[a!.choice,b?,then=\\def\[.target={this_name}\]\\def\[.iscall-\]]"
         return {
             "content_tokens": content,

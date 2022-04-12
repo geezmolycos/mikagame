@@ -1,0 +1,8 @@
+\def[choiceanim=\
+    \\ifelse\[\
+        a!.choice,b?,\
+        else=\\\\tick\\\[:0\\\]\
+    \]\
+]\
+\def[unchosen= ]
+\def[chosen=*]

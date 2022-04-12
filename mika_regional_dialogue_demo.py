@@ -15,6 +15,17 @@ from utilities import Vector2D
 
 from js import jQuery as jq
 
+import os
+
+all_modules = mika_modules.walk_modules("./resources/modules")
+# 读取对话
+sentences = {}
+for m, file_name in all_modules.items():
+    ext = os.path.splitext(file_name)[1]
+    if ext == ".yaml":
+        with open(os.path.join("./resources/modules", file_name), encoding="utf-8") as f:
+            sentences.update(mika_yaml_dialogue.parse_mikad_module(m, f.read()))
+
 scr = mika_svgui.SVGGameScreen()
 
 jq("body").append(scr.jq_svg)
@@ -30,6 +41,8 @@ styleml_parser = styleml.core.StyleMLCoreParser(
     ]
 )
 
+macro_parser = styleml.macro_ext.MacroExtParser()
+
 speech_region = mika_regional_dialogue.ScreenRegion(
     size=Vector2D(25, 5),
     origin=Vector2D(0, 5)
@@ -40,42 +53,18 @@ map_region = mika_regional_dialogue.ScreenRegion(
     origin=Vector2D(0, 0)
 )
 
+predefined_macros = macro_parser.expand_and_get_defined_macros(styleml_parser.tokenize(open("./resources/predefined_macros.txt").read()))[1]
+
 manager = mika_regional_dialogue.RegionalDialogueManager(
-    sentences=mika_yaml_dialogue.parse_mikad_module("a.c", r"""
-.char:
-    default:
-        region_conv: "=speech"
-    st:
-        - 
-            content_tokens: 今天是个好日子
-            pause_after_conv: "-"
-            uninterruptable_conv: "+"
-        - '心想的事儿都能成，\stcallsync[=a.c.call.0]心想的事儿都能成'
-.call:
-    default:
-        region_conv: "=map"
-    st:
-        - 你好我好大家好
-        - 他好我也好
-.mmm:
-    default:
-        region_conv: "=map"
-    st:
-        -
-            _template: choice
-            desc: 描述
-            choices:
-                - j,.<c.char.0,走
-                - j,.,此
-"""
-    ),
+    sentences=sentences,
     screen_regions={
         "speech": speech_region,
         "map": map_region
     },
-    macro_parser=styleml.macro_ext.MacroExtParser(),
+    macro_parser=macro_parser,
+    macros=predefined_macros,
     postmacro_parser=styleml_parser,
-    current_sentence_name="a.c.char.0"
+    current_sentence_name="c.mmm.0"
 )
 
 def clear_region(region_name):
@@ -178,12 +167,12 @@ async def async_inter_sentence_caller(sentence_name, instant=False, macros=None)
     fork_manager = manager.fork_from_inter_sentence_call(sentence_name=sentence_name, macros=macros)
     await consequent_next_sentence(fork_manager, first=True, skip_pause=True, instant=instant)
 
-async def render_current_sentence(manager, instant=False):
+async def render_current_sentence(manager, instant=False, choice=None):
     try:
         if manager.current_conv("clear_region_conv"):
             clear_region(manager.current_conv("region_conv"))
         i = add_print_tokens_animation(
-            manager.eval_sentence(),
+            manager.eval_sentence(choice),
             manager.current_sentence_name,
             meta={"sentence_name": manager.current_sentence_name},
             instant=instant
@@ -219,10 +208,27 @@ def try_skip_animation():
         
 main_start_next_sentence(True)
 
-def _():
-    if len(animation_pool.pool) > 0:
+current_choice = None
+def _(key, ctrl, shift, alt):
+    global current_choice
+    if key in ("ArrowUp", "ArrowDown"):
+        if current_choice is None:
+            current_choice = 0
+        elif key == "ArrowDown":
+            current_choice += 1
+        elif key == "ArrowUp":
+            current_choice -= 1
+        try:
+            current_choice %= manager.current_conv("choice_amount_conv")
+        except ZeroDivisionError:
+            current_choice = None
+        print(current_choice)
+        asyncio.create_task(render_current_sentence(manager, False, current_choice))
+    elif len(animation_pool.pool) > 0:
         try_skip_animation()
     else:
         main_start_next_sentence()
 
-scr.registered_onkeypress.append(lambda key, ctrl, shift, alt: _())
+scr.registered_onkeypress.append(_)
+
+

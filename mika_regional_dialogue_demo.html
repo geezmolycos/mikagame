@@ -35,12 +35,12 @@
                     with safe_open_wb(filename) as f:
                         f.write(await response.bytes())
                 
-                py_files = "mika_yaml_dialogue.py, mika_regional_dialogue.py, styleml_glyph_exts.py, mika_yaml_scene.py, mika_modules.py, mika_dialogue.py, mika_screen.py, mika_svgui.py, styleml_mika_exts.py, utilities.py, ./styleml/convenient_argument.py, ./styleml/core.py, ./styleml/macro_ext.py, ./styleml/portal_ext.py"
+                py_files = "mika_yaml_dialogue.py, mika_regional_dialogue.py, styleml_glyph_exts.py, mika_modules.py, mika_dialogue.py, mika_screen.py, mika_svgui.py, styleml_mika_exts.py, utilities.py, ./styleml/convenient_argument.py, ./styleml/core.py, ./styleml/macro_ext.py, ./styleml/portal_ext.py"
                 py_files = py_files.split(", ")
                 await gather(*[fetch_py(fn) for fn in py_files])
 
                 # load characters and scenes
-
+                
                 import json
 
                 await fetch_py("walk_modules.json")
@@ -48,7 +48,8 @@
                     modules = json.load(f)
                 
                 all_module_files = modules.values()
-                await gather(*[fetch_py(os.path.join("demo_root", fn)) for fn in all_module_files])
+                await gather(*[fetch_py(os.path.join("./resources/modules", fn)) for fn in all_module_files])
+                await gather(*[fetch_py("./resources/predefined_macros.txt")])
 
             `)
             pyodide.runPython(await (await fetch("mika_regional_dialogue_demo.py" + "?rnd=" + Math.random())).text());
