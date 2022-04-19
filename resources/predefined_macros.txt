@@ -1,3 +1,8 @@
+
+\def[start_sentence=c.mmm.0]
+
+\def[a-]
+
 \def[choiceanim=\
     \\ifelse\[\
         a!.choice,b?,\
@@ -6,3 +11,4 @@
 ]\
 \def[unchosen= ]
 \def[chosen=*]
+\def[disabledchosen=x]

@@ -45,11 +45,11 @@ macro_parser = styleml.macro_ext.MacroExtParser()
 
 speech_region = mika_regional_dialogue.ScreenRegion(
     size=Vector2D(25, 5),
-    origin=Vector2D(0, 5)
+    origin=Vector2D(0, 15)
 )
 
 map_region = mika_regional_dialogue.ScreenRegion(
-    size=Vector2D(25, 5),
+    size=Vector2D(25, 15),
     origin=Vector2D(0, 0)
 )
 
@@ -64,7 +64,7 @@ manager = mika_regional_dialogue.RegionalDialogueManager(
     macro_parser=macro_parser,
     macros=predefined_macros,
     postmacro_parser=styleml_parser,
-    current_sentence_name="c.mmm.0"
+    current_sentence_name=predefined_macros["start_sentence"]
 )
 
 def clear_region(region_name):
@@ -211,7 +211,9 @@ main_start_next_sentence(True)
 current_choice = None
 def _(key, ctrl, shift, alt):
     global current_choice
-    if key in ("ArrowUp", "ArrowDown"):
+    if len(animation_pool.pool) > 0:
+        try_skip_animation()
+    elif key in ("ArrowUp", "ArrowDown"):
         if current_choice is None:
             current_choice = 0
         elif key == "ArrowDown":
@@ -220,13 +222,12 @@ def _(key, ctrl, shift, alt):
             current_choice -= 1
         try:
             current_choice %= manager.current_conv("choice_amount_conv")
-        except ZeroDivisionError:
+        except (ZeroDivisionError, TypeError):
             current_choice = None
         print(current_choice)
         asyncio.create_task(render_current_sentence(manager, False, current_choice))
-    elif len(animation_pool.pool) > 0:
-        try_skip_animation()
     else:
+        current_choice = None
         main_start_next_sentence()
 
 scr.registered_onkeypress.append(_)

@@ -19,10 +19,20 @@ class Templates:
         content = r"\!choiceanim " + desc["desc"] + "\n"
         choices = desc["choices"]
         for choice_i, ch in enumerate(choices):
-            ch_mode, ch_target, *ch_desc = ch.split(",")
-            ch_desc = ",".join(ch_desc)
+            if isinstance(ch, str):
+                ch_mode, ch_target, *ch_desc = ch.split(",")
+                ch_desc = ",".join(ch_desc)
+                ch_criteria = None
+            elif isinstance(ch, dict):
+                ch_mode, ch_target, ch_desc = ch["mode"], ch["target"], ch["desc"]
+                ch_criteria = ch.get("criteria")
             iscall_conv = "+" if ch_mode == "c" else "-"
-            content += fr"{{\ifelse[a!.choice,b;{choice_i},then=\\def\[.target={ch_target}\]\\def\[.iscall{iscall_conv}\]\\!chosen ,else=\\!unchosen ]"
+            content += "{"
+            if ch_criteria is not None:
+                content += fr"\def[.checkcriteria=\\ifelse\[a!{ch_criteria},b-,then=\\\\def\\\[.target=.\\\]\\\\def\\\[.iscall-\\\]\\\\!disabledchosen ,else=\\\\!chosen \]]"
+            else:
+                content += fr"\def[.checkcriteria=\\!chosen ]"
+            content += fr"\ifelse[a!.choice,b;{choice_i},then=\\def\[.target={ch_target}\]\\def\[.iscall{iscall_conv}\]\\!.checkcriteria ,else=\\!unchosen ]"
             content += ch_desc
             content += "}\n"
         content += fr"\ifelse[a!.choice,b?,then=\\def\[.target={this_name}\]\\def\[.iscall-\]]"

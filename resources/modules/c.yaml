@@ -21,7 +21,7 @@
         - 我今天下载度云
         - 我碰到了比特幕
         - 我马上就要下线了
-        - 在学校里面进行冒险，比网上冲浪好玩多了。
+        - 在学校里面进行冒险，比网上冲浪好玩多了。\def[a+]
 .mmm:
     default:
         region_conv: "=map"
@@ -31,5 +31,9 @@
             desc: 描述
             choices:
                 - c,.<c.char.0,走
-                - j,.,此
+                - 
+                    mode: c
+                    desc: 听听
+                    target: .<c.demoseq.0
+                    criteria: a
                 - c,.<c.demoseq.0,听听说话
