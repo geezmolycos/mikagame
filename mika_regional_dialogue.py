@@ -24,6 +24,7 @@ class Sentence:
     uninterruptable_conv = attr.ib(default="-")
     pause_after_conv = attr.ib(default="+")
     call_conv = attr.ib(default="?")
+    call_return_conv = attr.ib(default="=.")
     return_conv = attr.ib(default="-")
     clear_region_conv = attr.ib(default="+")
     meta = attr.ib(factory=dict)
@@ -124,7 +125,7 @@ class RegionalDialogueManager:
     
     def next_sentence(self):
         if self.is_next_sentence_call:
-            self.call_stack.append(self.current_sentence_name)
+            self.call_stack.append(mika_modules.resolve_module_ref(self.current_sentence_name, self.current_conv("call_return_conv")))
         if self.is_next_sentence_return:
             self.current_sentence_name = self.call_stack.pop()
         else:
