@@ -1,7 +1,5 @@
 
-\def[start_sentence=c.mmm.0]
-
-\def[a-]
+\def[start_sentence=home_neighbor.home.bedroom.0]
 
 \def[choiceanim=\
     \\ifelse\[\

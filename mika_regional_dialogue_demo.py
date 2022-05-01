@@ -35,7 +35,7 @@ styleml_parser = styleml.core.StyleMLCoreParser(
         mika_regional_dialogue.InterSentenceCallExtParser(),
         styleml.portal_ext.PortalExtParser(),
         styleml_glyph_exts.GlyphsetExtParser(),
-        styleml_mika_exts.AnimationExtParser(initial_tick=0.07),
+        styleml_mika_exts.AnimationExtParser(initial_tick=0.03),
         styleml_mika_exts.StyleExtParser(),
         styleml.core.ReturnCharExtParser()
     ]
@@ -44,12 +44,12 @@ styleml_parser = styleml.core.StyleMLCoreParser(
 macro_parser = styleml.macro_ext.MacroExtParser()
 
 speech_region = mika_regional_dialogue.ScreenRegion(
-    size=Vector2D(25, 5),
-    origin=Vector2D(0, 15)
+    size=Vector2D(25, 6),
+    origin=Vector2D(0, 16)
 )
 
 map_region = mika_regional_dialogue.ScreenRegion(
-    size=Vector2D(25, 15),
+    size=Vector2D(25, 16),
     origin=Vector2D(0, 0)
 )
 
@@ -68,6 +68,8 @@ manager = mika_regional_dialogue.RegionalDialogueManager(
 )
 
 def clear_region(region_name):
+    if region_name is None:
+        return
     region = manager.screen_regions[region_name]
     for y in range(region.size.y):
         for x in range(region.size.x):
