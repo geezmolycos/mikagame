@@ -28,11 +28,17 @@ class Templates:
             # make sure content is dict
             l = default | dict(next_conv="=" + ".." + str(i + 1)) | l | {"_is_paragraph": True}
             content[str(i)] = l
-        content[str(len(s))] = default | dict(next_conv=content["next_conv"], uninterruptable_conv="+", pause_after_conv="-") | {"_is_paragraph": True}
+        next_conv = content.get("next_conv")
+        if next_conv is not None:
+            next_conv = next_conv[1:]
+            next_conv = "=..>" + next_conv
+        if next_conv is None:
+            next_conv = "?"
+        content[str(len(s))] = default | dict(next_conv=next_conv, return_conv=content.get("return_conv", "?"), uninterruptable_conv="+", pause_after_conv="-") | {"_is_paragraph": True}
         content.update(dict(next_conv="=.0", uninterruptable_conv="+", pause_after_conv="-") | {"_is_paragraph": True})
         return content
     
-    def choice(self, content):
+    def choice(self, name, content):
         pass
 
 def make_sentence_ignore_extra_args(kwargs):
@@ -55,17 +61,11 @@ def apply_template(
     paragraph_content,
     templates=TemplateClassProxy(Templates())
     ):
-    templates_to_apply = paragraph_content.pop("_t") or []
+    templates_to_apply = paragraph_content.pop("_t", [])
     result = paragraph_content
     for t in templates_to_apply:
         result = templates[t](paragraph_name, result)
     return result
-
-def add_namespace(expanded, module_name):
-    return {
-        mika_modules.resolve_module_ref(module_name, "." + name): value
-        for name, value in expanded.items()
-    }
 
 def expand_paragraph(
     paragraph_name,
@@ -75,13 +75,14 @@ def expand_paragraph(
     if isinstance(paragraph_content, dict):
         new_paragraph_content = {}
         for k, v in paragraph_content.items():
-            if isinstance(v, dict) and v["_is_paragraph"]:
+            if isinstance(v, dict) and v.get("_is_paragraph", False):
                 if not v.get("_use_absolute_name", False):
                     rel_name = "." + k
                 else:
                     rel_name = k
-                submodule_name = mika_modules.resolve_module_ref(paragraph_name, rel_name)
-                expanded.update(expand_paragraph(submodule_name, v))
+                subparagraph_name = mika_modules.resolve_module_ref(paragraph_name, rel_name)
+                v = apply_template(subparagraph_name, v)
+                expanded.update(expand_paragraph(subparagraph_name, v))
             else:
                 new_paragraph_content[k] = v
     elif isinstance(paragraph_content, str):
@@ -92,5 +93,34 @@ def expand_paragraph(
 def to_sentence_pool(expanded_paragraphs):
     return {k: make_sentence_ignore_extra_args(v) for k, v in expanded_paragraphs.items()}
 
-
-
+if __name__ == "__main__":
+    s = """
+a:
+    !para
+    c: good
+    dd:
+        !para
+        _t: [alias]
+        alias: ..cc
+        c: better
+b:
+    !para
+    _t: [seq]
+    s:
+        - ca
+        - 
+            !para
+            _t: [seq]
+            s:
+                - ia
+                - ib
+                - ic
+        - cc
+    """
+    yaml.add_constructor(u'!para', paragraph_constructor)
+    so = yaml.full_load(s)
+    ex = expand_paragraph("s", so)
+    pl = to_sentence_pool(ex)
+    from pprint import pprint
+    pprint(pl)
+    

@@ -45,12 +45,17 @@ def resolve_module_ref(current_module_name, ref_module_name):
                 abs_stack = []
             while abs_stack[-1] != search_for:
                 abs_stack.pop()
+        elif it[0] == ">":
+            # new reference from current location
+            from_root = it[1:]
+            if len(from_root) != 0:
+                abs_stack = [from_root]
         else:
             abs_stack.append(it)
     return ".".join(abs_stack)
 
 if __name__ == "__main__":
     a = "a.b.c.d"
-    r = ".<b.e"
+    r = ".e.>b.e"
     print(resolve_module_ref(a,r))
     #print(walk_modules("./demo_root"))
