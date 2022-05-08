@@ -11,12 +11,12 @@ class TemplateClassProxy:
 
 class Templates:
     
-    def alias(self, content):
-        pass
-
+    def alias(self, name, content):
+        alias_name = content["alias"]
+        content[alias_name] = dict(next_conv="="+name, uninterruptable_conv="+", pause_after_conv="-") | {"_is_paragraph": True, "_use_absolute_name": True}
+        return content
     
-    def seq(self, content):
-        content = content.copy()
+    def seq(self, name, content):
         try:
             default = content.pop("default")
         except KeyError:
@@ -28,8 +28,9 @@ class Templates:
             # make sure content is dict
             l = default | dict(next_conv="=" + ".." + str(i + 1)) | l | {"_is_paragraph": True}
             content[str(i)] = l
-        content[str(len(s))] = default | dict(next_conv=content["next_conv"], uninterruptable_conv="+", pause_after_conv="-")
-        content.update(dict(next_conv="=.0", uninterruptable_conv="+", pause_after_conv="-"))
+        content[str(len(s))] = default | dict(next_conv=content["next_conv"], uninterruptable_conv="+", pause_after_conv="-") | {"_is_paragraph": True}
+        content.update(dict(next_conv="=.0", uninterruptable_conv="+", pause_after_conv="-") | {"_is_paragraph": True})
+        return content
     
     def choice(self, content):
         pass
@@ -50,18 +51,24 @@ def paragraph_constructor(loader, node):
     return value
 
 def apply_template(
+    paragraph_name,
     paragraph_content,
     templates=TemplateClassProxy(Templates())
     ):
-    paragraph_content = paragraph_content.copy()
-    templates_to_apply = paragraph_content.pop("_t")
+    templates_to_apply = paragraph_content.pop("_t") or []
     result = paragraph_content
     for t in templates_to_apply:
-        result = templates[templates_to_apply](result)
+        result = templates[t](paragraph_name, result)
     return result
 
+def add_namespace(expanded, module_name):
+    return {
+        mika_modules.resolve_module_ref(module_name, "." + name): value
+        for name, value in expanded.items()
+    }
+
 def expand_paragraph(
-    module_name,
+    paragraph_name,
     paragraph_content
     ):
     expanded = {}
@@ -69,13 +76,17 @@ def expand_paragraph(
         new_paragraph_content = {}
         for k, v in paragraph_content.items():
             if isinstance(v, dict) and v["_is_paragraph"]:
-                submodule_name = mika_modules.resolve_module_ref(module_name, "." + k)
+                if not v.get("_use_absolute_name", False):
+                    rel_name = "." + k
+                else:
+                    rel_name = k
+                submodule_name = mika_modules.resolve_module_ref(paragraph_name, rel_name)
                 expanded.update(expand_paragraph(submodule_name, v))
             else:
                 new_paragraph_content[k] = v
     elif isinstance(paragraph_content, str):
         new_paragraph_content = {"content_tokens": paragraph_content}
-    expanded[module_name] = new_paragraph_content
+    expanded[paragraph_name] = new_paragraph_content
     return expanded
 
 def to_sentence_pool(expanded_paragraphs):

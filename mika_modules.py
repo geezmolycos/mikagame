@@ -41,6 +41,8 @@ def resolve_module_ref(current_module_name, ref_module_name):
         elif it[0] == "<":
             # backtrack
             search_for = it[1:]
+            if len(search_for) == 0: # to root
+                abs_stack = []
             while abs_stack[-1] != search_for:
                 abs_stack.pop()
         else:
