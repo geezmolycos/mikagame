@@ -25,6 +25,8 @@ for m, file_name in all_modules.items():
     if ext == ".yaml":
         with open(os.path.join("./resources/modules", file_name), encoding="utf-8") as f:
             sentences.update(mika_yaml_dialogue.parse_mikad_module(m, f.read()))
+from pprint import pprint
+pprint(sentences)
 
 scr = mika_svgui.SVGGameScreen()
 

@@ -50,6 +50,8 @@ def resolve_module_ref(current_module_name, ref_module_name):
             from_root = it[1:]
             if len(from_root) != 0:
                 abs_stack = [from_root]
+            else:
+                abs_stack = []
         else:
             abs_stack.append(it)
     return ".".join(abs_stack)

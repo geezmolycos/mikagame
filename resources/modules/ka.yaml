@@ -1,0 +1,9 @@
+a:
+  !para
+  _t: [seq]
+  default:
+    region_conv: '=map'
+  s:
+    - ca
+    - cb
+    - cc

@@ -35,7 +35,7 @@ class Templates:
         s = content.pop("s") 
         for i, l in enumerate(s):
             if isinstance(l, str):
-                l = {"content_tokens": l}
+                l = {"content_tokens": l, "_is_paragraph": True}
             # make sure content is dict
             l = default | dict(next_conv="=" + ".." + str(i + 1)) | l
             content[str(i)] = l
@@ -148,6 +148,13 @@ def expand_paragraph(
 
 def to_sentence_pool(expanded_paragraphs):
     return {k: make_sentence_ignore_extra_args(v) for k, v in expanded_paragraphs.items()}
+
+def parse_mikad_module(module_name, s):
+    yaml.add_constructor(u'!para', paragraph_constructor)
+    so = yaml.full_load(s)
+    ex = expand_paragraph(module_name, so)
+    pl = to_sentence_pool(ex)
+    return pl
 
 if __name__ == "__main__":
     s = """
