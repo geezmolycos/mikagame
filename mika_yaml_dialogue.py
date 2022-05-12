@@ -1,4 +1,6 @@
 import yaml
+import attr
+
 import mika_regional_dialogue
 import mika_modules
 
@@ -10,6 +12,15 @@ class TemplateClassProxy:
         return getattr(self.target, key)
 
 class Templates:
+    
+    def _default(self, name, content):
+        return self.expand_abbr(name, content)
+    
+    def expand_abbr(self, name, content):
+        content["content_tokens"] = content.get("content_tokens", content.get("contents", content.get("c", [])))
+        if "next_conv" not in content:
+            content["next_conv"] = "?"
+        return content
     
     def alias(self, name, content):
         alias_name = content["alias"]
@@ -26,7 +37,7 @@ class Templates:
             if isinstance(l, str):
                 l = {"content_tokens": l}
             # make sure content is dict
-            l = default | dict(next_conv="=" + ".." + str(i + 1)) | l | {"_is_paragraph": True}
+            l = default | dict(next_conv="=" + ".." + str(i + 1)) | l
             content[str(i)] = l
         next_conv = content.get("next_conv")
         if next_conv is not None:
@@ -34,15 +45,53 @@ class Templates:
             next_conv = "=..>" + next_conv
         if next_conv is None:
             next_conv = "?"
-        content[str(len(s))] = default | dict(next_conv=next_conv, return_conv=content.get("return_conv", "?"), uninterruptable_conv="+", pause_after_conv="-") | {"_is_paragraph": True}
+        content[str(len(s))] = default | dict(next_conv=next_conv, return_conv=content.get("return_conv", "-"), uninterruptable_conv="+", pause_after_conv="-") | {"_is_paragraph": True}
         content.update(dict(next_conv="=.0", uninterruptable_conv="+", pause_after_conv="-") | {"_is_paragraph": True})
         return content
     
     def choice(self, name, content):
-        pass
+        """
+        choice有自己的描述，还有各子选项的对话内容
+        """
+        text = r"\!choiceanim " + content["content_tokens"] + "\n"
+        for i, choice_d in enumerate(content["ch"]):
+            key, choice_paragraph = choice_d["key"], choice_d["p"]
+            criteria = choice_d.get("criteria")
+            text += "{"
+            if criteria is not None:
+                text += fr"\def[.checkcriteria=\\ifelse\[a!{criteria},b-,then=\\\\def\\\[.target=.\\\]\\\\def\\\[.iscall-\\\]\\\\!disabledchosen ,else=\\\\!chosen \]]"
+            else:
+                text += fr"\def[.checkcriteria=\\!chosen ]"
+            text += fr"\ifelse[a!.choice,b;{i},then=\\def\[.target=.{i}\]\\!.checkcriteria ,else=\\!unchosen ]"
+            text += key
+            text += "}\n"
+            choice_paragraph["next_conv"] = content["next_conv"]
+            content[str(i)] = choice_paragraph
+        text += fr"\ifelse[a!.choice,b?,then=\\def\[.target=.\]]"
+        return content | {
+            "content_tokens": text,
+            "next_conv": "!.target",
+            "choice_amount_conv": f";{len(content['ch'])}",
+            "call_conv": "-",
+            "return_conv": "-",
+        }
+            
+    
+    def branch(self, name, content):
+        criteria = content["criteria"]
+        para_t = content["t"]
+        para_f = content["f"]
+        content["content_tokens"] = fr"\ifelse[a!{criteria},b+,then=\\def\[.target=.t\],else=\\def\[.target=.f\]]"
+        para_t["next_conv"] = content["next_conv"]
+        para_f["next_conv"] = content["next_conv"]
+        return content | {
+            "next_conv": "!.target",
+            "uninterruptable_conv": "+",
+            "pause_after_conv": "-"
+        }
+        
 
 def make_sentence_ignore_extra_args(kwargs):
-    kwargs["content_tokens"] = kwargs.get("content_tokens", kwargs.get("contents", kwargs.get("c", [])))
     typ = mika_regional_dialogue.Sentence
     filtered = {
         attribute.name: kwargs[attribute.name]
@@ -52,7 +101,11 @@ def make_sentence_ignore_extra_args(kwargs):
     return typ(**filtered)
 
 def paragraph_constructor(loader, node):
-    value = loader.construct_mapping(node)
+    try:
+        value = loader.construct_mapping(node)
+    except yaml.constructor.ConstructorError:
+        value = loader.construct_scalar(node)
+        value = {"content_tokens": value}
     value["_is_paragraph"] = True
     return value
 
@@ -61,7 +114,7 @@ def apply_template(
     paragraph_content,
     templates=TemplateClassProxy(Templates())
     ):
-    templates_to_apply = paragraph_content.pop("_t", [])
+    templates_to_apply = ["_default"] + paragraph_content.pop("_t", [])
     result = paragraph_content
     for t in templates_to_apply:
         result = templates[t](paragraph_name, result)
@@ -82,7 +135,10 @@ def expand_paragraph(
                     rel_name = k
                 subparagraph_name = mika_modules.resolve_module_ref(paragraph_name, rel_name)
                 v = apply_template(subparagraph_name, v)
-                expanded.update(expand_paragraph(subparagraph_name, v))
+                try:
+                    expanded.update(expand_paragraph(subparagraph_name, v))
+                except Exception as e:
+                    raise ValueError(f"error expanding paragraph {subparagraph_name}") from e
             else:
                 new_paragraph_content[k] = v
     elif isinstance(paragraph_content, str):
@@ -116,6 +172,17 @@ b:
                 - ib
                 - ic
         - cc
+d:
+    !para
+    _t: [choice]
+    c: choose one
+    ch:
+        -
+            key: hello
+            p: !para 1234abc
+        -
+            key: bye
+            p: !para 987byebye
     """
     yaml.add_constructor(u'!para', paragraph_constructor)
     so = yaml.full_load(s)
