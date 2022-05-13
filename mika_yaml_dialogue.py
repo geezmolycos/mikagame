@@ -10,6 +10,13 @@ class TemplateClassProxy:
         
     def __getitem__(self, key):
         return getattr(self.target, key)
+    
+
+def extend_flow(carrier, insertion):
+    if "next_conv" not in insertion and "next_conv" in carrier:
+        insertion["next_conv"] = carrier["next_conv"]
+    if "return_conv" not in insertion and "return_conv" in carrier:
+        insertion["return_conv"] = carrier["next_conv"]
 
 class Templates:
     
@@ -18,8 +25,6 @@ class Templates:
     
     def expand_abbr(self, name, content):
         content["content_tokens"] = content.get("content_tokens", content.get("contents", content.get("c", [])))
-        if "next_conv" not in content:
-            content["next_conv"] = "?"
         return content
     
     def alias(self, name, content):
@@ -29,7 +34,11 @@ class Templates:
     
     def seq(self, name, content):
         try:
-            default = content.pop("default")
+            default = content.copy()
+            if "s" in default:
+                default.pop("s")
+            if "_t" in default:
+                default.pop("_t")
         except KeyError:
             default = {}
         s = content.pop("s") 
@@ -37,16 +46,13 @@ class Templates:
             if isinstance(l, str):
                 l = {"content_tokens": l, "_is_paragraph": True}
             # make sure content is dict
-            l = default | dict(next_conv="=" + ".." + str(i + 1)) | l
+            l = default | dict(next_conv="=" + ".." + str(i + 1), return_conv="-") | l
             content[str(i)] = l
-        next_conv = content.get("next_conv")
-        if next_conv is not None:
-            next_conv = next_conv[1:]
-            next_conv = "=..>" + next_conv
-        if next_conv is None:
-            next_conv = "?"
-        content[str(len(s))] = default | dict(next_conv=next_conv, return_conv=content.get("return_conv", "-"), uninterruptable_conv="+", pause_after_conv="-") | {"_is_paragraph": True}
-        content.update(dict(next_conv="=.0", uninterruptable_conv="+", pause_after_conv="-") | {"_is_paragraph": True})
+        final = default | {"_t": ["imm"]}
+        final["mock_location"] = content.get("mock_location", name)
+        extend_flow(content, final)
+        content[str(len(s))] = final
+        content.update(dict(next_conv="=.0", return_conv="-", uninterruptable_conv="+", pause_after_conv="-") | {"_is_paragraph": True})
         return content
     
     def choice(self, name, content):
@@ -65,8 +71,9 @@ class Templates:
             text += fr"\ifelse[a!.choice,b;{i},then=\\def\[.target=.{i}\]\\!.checkcriteria ,else=\\!unchosen ]"
             text += key
             text += "}\n"
-            choice_paragraph["next_conv"] = content["next_conv"]
-            content[str(i)] = choice_paragraph
+            choice_paragraph["mock_location"] = content.get("mock_location", name)
+            extend_flow(content, choice_paragraph)
+            content[str(i)] = choice_paragraph | {"_is_paragraph": True}
         text += fr"\ifelse[a!.choice,b?,then=\\def\[.target=.\]]"
         return content | {
             "content_tokens": text,
@@ -79,17 +86,30 @@ class Templates:
     
     def branch(self, name, content):
         criteria = content["criteria"]
-        para_t = content["t"]
-        para_f = content["f"]
+        content["t"].update({"_is_paragraph": True})
+        content["f"].update({"_is_paragraph": True})
         content["content_tokens"] = fr"\ifelse[a!{criteria},b+,then=\\def\[.target=.t\],else=\\def\[.target=.f\]]"
-        para_t["next_conv"] = content["next_conv"]
-        para_f["next_conv"] = content["next_conv"]
+        content["t"]["mock_location"] = content.get("mock_location", name)
+        content["f"]["mock_location"] = content.get("mock_location", name)
+        extend_flow(content, content["t"])
+        extend_flow(content, content["f"])
         return content | {
             "next_conv": "!.target",
             "uninterruptable_conv": "+",
             "pause_after_conv": "-"
         }
-        
+    
+    def imm(self, name, content):
+        content["pause_after_conv"] = "-"
+        content["uninterruptable_conv"] = "+"
+        return content
+
+    def call(self, name, content):
+        if "next_conv" in content:
+            content["call_return_conv"] = content["next_conv"]
+        content["next_conv"] = content["call_target"]
+        content["call_conv"] = "+"
+        return content
 
 def make_sentence_ignore_extra_args(kwargs):
     typ = mika_regional_dialogue.Sentence

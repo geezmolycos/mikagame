@@ -28,6 +28,8 @@ def parse_convenient_obj_repr(s, macros=None):
         obj = macros.get(value, nothing_sentinent) if macros is not None else nothing_sentinent
     elif type == "^":
         obj = macros is not None and value in macros
+    else:
+        raise ValueError(f"invalid type indicator {type} in {s}")
     return obj
 
 def parse_convenient_pair(s, macros=None):

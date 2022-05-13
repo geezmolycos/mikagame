@@ -27,6 +27,7 @@ class Sentence:
     call_return_conv = attr.ib(default="=.")
     return_conv = attr.ib(default="-")
     clear_region_conv = attr.ib(default="+")
+    mock_location = attr.ib(default=".")
     meta = attr.ib(factory=dict)
     
     def __attrs_post_init__(self):
@@ -97,11 +98,15 @@ class RegionalDialogueManager:
     def eval_sentence(self, choice=None):
         s = self.current_sentence
         name = self.current_sentence_name
+        mock = mika_modules.resolve_module_ref(
+            name,
+            s.mock_location
+        )
         proxy = ModularMacroProxy(global_macros=self.macros, base_module=name)
         proxy[".choice"] = choice
         expanded, macros = self.macro_parser.expand_and_get_defined_macros(s.content_tokens, proxy)
         self.next_sentence_name = mika_modules.resolve_module_ref(
-            name,
+            mock,
             conv.parse_convenient_obj_repr(s.next_conv, macros=macros)
         )
         self.is_next_sentence_call = conv.parse_convenient_obj_repr(s.call_conv, macros=macros)
@@ -125,7 +130,15 @@ class RegionalDialogueManager:
     
     def next_sentence(self):
         if self.is_next_sentence_call:
-            self.call_stack.append(mika_modules.resolve_module_ref(self.current_sentence_name, self.current_conv("call_return_conv")))
+            mock = mika_modules.resolve_module_ref(
+                self.current_sentence_name,
+                self.current_sentence.mock_location
+            )
+            self.call_stack.append(mika_modules.resolve_module_ref(
+                mika_modules.resolve_module_ref(
+                    self.current_sentence_name, mock
+                ), self.current_conv("call_return_conv")
+            ))
         if self.is_next_sentence_return:
             self.current_sentence_name = self.call_stack.pop()
         else:

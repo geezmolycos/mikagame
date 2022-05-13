@@ -19,6 +19,8 @@ def walk_modules(root, root_package=""):
     return modules
 
 def resolve_module_ref(current_module_name, ref_module_name):
+    if ref_module_name is None:
+        return current_module_name
     ref_stack = ref_module_name.split(".")
     current_stack = current_module_name.split(".")
     if len(ref_stack[-1]) == 0: # 处理以"."结尾时多一级的问题

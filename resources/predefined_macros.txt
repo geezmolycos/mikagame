@@ -1,5 +1,5 @@
 
-\def[start_sentence=ka.a]
+\def[start_sentence=ka.mmm]
 
 \def[choiceanim=\
     \\ifelse\[\
@@ -10,3 +10,4 @@
 \def[unchosen= ]
 \def[chosen=*]
 \def[disabledchosen=x]
+\def[a+]
