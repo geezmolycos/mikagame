@@ -1,13 +1,19 @@
 
-\def[start_sentence=ka.mmm]
+\def[start_sentence=home_neighbor.home.bedroom]
 
-\def[choiceanim=\
-    \\ifelse\[\
-        a!.choice,b?,\
-        else=\\\\tick\\\[:0\\\]\
-    \]\
-]\
+#\def[choiceanim=\
+#    \\ifelse\[\
+#        a!.choice,b?,\
+#        else=\\\\tick\\\[:0\\\]\
+#    \]\
+#    \\debug_print_macros \
+#    \\ifelse\[\
+#        a!.returned,b-,\
+#        else=\\\\tick\\\[:0\\\]\
+#    \]\
+#]\
+
+\def[choiceanim=\\tick\[:0\]]
 \def[unchosen= ]
 \def[chosen=*]
 \def[disabledchosen=x]
-\def[a+]

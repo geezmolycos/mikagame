@@ -16,7 +16,7 @@ def extend_flow(carrier, insertion):
     if "next_conv" not in insertion and "next_conv" in carrier:
         insertion["next_conv"] = carrier["next_conv"]
     if "return_conv" not in insertion and "return_conv" in carrier:
-        insertion["return_conv"] = carrier["next_conv"]
+        insertion["return_conv"] = carrier["return_conv"]
 
 class Templates:
     
@@ -24,7 +24,11 @@ class Templates:
         return self.expand_abbr(name, content)
     
     def expand_abbr(self, name, content):
-        content["content_tokens"] = content.get("content_tokens", content.get("contents", content.get("c", [])))
+        content["content_tokens"] = content.get("content_tokens", content.get("contents", content.get("c", "")))
+        try:
+            content["region_conv"] = "=" + content["region"]
+        except KeyError:
+            pass
         return content
     
     def alias(self, name, content):
@@ -39,6 +43,8 @@ class Templates:
                 default.pop("s")
             if "_t" in default:
                 default.pop("_t")
+            if "content_tokens" in default:
+                default.pop("content_tokens")
         except KeyError:
             default = {}
         s = content.pop("s") 
@@ -46,13 +52,16 @@ class Templates:
             if isinstance(l, str):
                 l = {"content_tokens": l, "_is_paragraph": True}
             # make sure content is dict
-            l = default | dict(next_conv="=" + ".." + str(i + 1), return_conv="-") | l
+            l = default | dict(next_conv="=" + mika_modules.resolve_module_ref(name, "." + str(i + 1)), return_conv="-") | l
             content[str(i)] = l
         final = default | {"_t": ["imm"]}
         final["mock_location"] = content.get("mock_location", name)
         extend_flow(content, final)
         content[str(len(s))] = final
-        content.update(dict(next_conv="=.0", return_conv="-", uninterruptable_conv="+", pause_after_conv="-") | {"_is_paragraph": True})
+        content.update(dict(
+            next_conv="=" + mika_modules.resolve_module_ref(name, ".0"),
+            return_conv="-", uninterruptable_conv="+", pause_after_conv="-"
+        ) | {"_is_paragraph": True})
         return content
     
     def choice(self, name, content):
@@ -62,13 +71,15 @@ class Templates:
         text = r"\!choiceanim " + content["content_tokens"] + "\n"
         for i, choice_d in enumerate(content["ch"]):
             key, choice_paragraph = choice_d["key"], choice_d["p"]
+            if isinstance(choice_paragraph, str):
+                choice_paragraph = {"content_tokens": choice_paragraph}
             criteria = choice_d.get("criteria")
             text += "{"
             if criteria is not None:
-                text += fr"\def[.checkcriteria=\\ifelse\[a!{criteria},b-,then=\\\\def\\\[.target=.\\\]\\\\def\\\[.iscall-\\\]\\\\!disabledchosen ,else=\\\\!chosen \]]"
+                text += fr"\def[.checkcriteria=\\ifelse\[a!{criteria},b-,then=\\\\def\\\[.target={name}\\\]\\\\def\\\[.iscall-\\\]\\\\!disabledchosen ,else=\\\\!chosen \]]"
             else:
                 text += fr"\def[.checkcriteria=\\!chosen ]"
-            text += fr"\ifelse[a!.choice,b;{i},then=\\def\[.target=.{i}\]\\!.checkcriteria ,else=\\!unchosen ]"
+            text += fr"\ifelse[a!.choice,b;{i},then=\\def\[.target={mika_modules.resolve_module_ref(name, '.' + str(i))}\]\\!.checkcriteria ,else=\\!unchosen ]"
             text += key
             text += "}\n"
             choice_paragraph["mock_location"] = content.get("mock_location", name)
@@ -88,7 +99,7 @@ class Templates:
         criteria = content["criteria"]
         content["t"].update({"_is_paragraph": True})
         content["f"].update({"_is_paragraph": True})
-        content["content_tokens"] = fr"\ifelse[a!{criteria},b+,then=\\def\[.target=.t\],else=\\def\[.target=.f\]]"
+        content["content_tokens"] = fr"\ifelse[a!{criteria},b+,then=\\def\[.target={mika_modules.resolve_module_ref(name, '.t')}\],else=\\def\[.target={mika_modules.resolve_module_ref(name, '.f')}\]]"
         content["t"]["mock_location"] = content.get("mock_location", name)
         content["f"]["mock_location"] = content.get("mock_location", name)
         extend_flow(content, content["t"])
@@ -107,7 +118,7 @@ class Templates:
     def call(self, name, content):
         if "next_conv" in content:
             content["call_return_conv"] = content["next_conv"]
-        content["next_conv"] = content["call_target"]
+        content["next_conv"] = "=" + content["call_target"]
         content["call_conv"] = "+"
         return content
 
@@ -134,7 +145,10 @@ def apply_template(
     paragraph_content,
     templates=TemplateClassProxy(Templates())
     ):
-    templates_to_apply = ["_default"] + paragraph_content.pop("_t", [])
+    t = paragraph_content.pop("_t", [])
+    if not isinstance(t, list):
+        t = [t]
+    templates_to_apply = ["_default"] + t
     result = paragraph_content
     for t in templates_to_apply:
         result = templates[t](paragraph_name, result)
@@ -173,6 +187,7 @@ def parse_mikad_module(module_name, s):
     yaml.add_constructor(u'!para', paragraph_constructor)
     so = yaml.full_load(s)
     ex = expand_paragraph(module_name, so)
+    __import__("pprint").pprint(ex)
     pl = to_sentence_pool(ex)
     return pl
 

@@ -25,8 +25,6 @@ for m, file_name in all_modules.items():
     if ext == ".yaml":
         with open(os.path.join("./resources/modules", file_name), encoding="utf-8") as f:
             sentences.update(mika_yaml_dialogue.parse_mikad_module(m, f.read()))
-from pprint import pprint
-pprint(sentences)
 
 scr = mika_svgui.SVGGameScreen()
 
@@ -95,6 +93,8 @@ class AnimationWrapper:
         except Exception:
             import traceback
             traceback.print_exc()
+            import sys
+            sys.exit(1)
     
     def start(self):
         return asyncio.create_task(self.wrapper_task())
@@ -185,6 +185,8 @@ async def render_current_sentence(manager, instant=False, choice=None):
     except Exception:
         import traceback
         traceback.print_exc()
+        import sys
+        sys.exit(1)
 
 async def consequent_next_sentence(manager, first=False, skip_pause=False, instant=False):
     if not first:

@@ -55,16 +55,17 @@ class MacroExtParser(StyleMLExtParser):
                 a, b = arguments.get("a"), arguments.get("b")
                 exp_then, exp_else = arguments.get("then"), arguments.get("else")
                 exp = None
-                if "a" in arguments and "b" in arguments:
-                    if a == b: # 已经将引用宏的能力写到了convenient obj expr中
-                        exp = exp_then
-                    else:
-                        exp = exp_else
+                if a == b: # 已经将引用宏的能力写到了convenient obj expr中
+                    exp = exp_then
+                else:
+                    exp = exp_else
                 if exp: # 有可能then或else没有指定内容
                     expanded_tokens = self.tokenize(exp, inline_mode=True)
                     recursive_expanded_tokens, inner_macros = self.expand_and_get_defined_macros(expanded_tokens, initial_macros=current_macros)
                     transformed_tokens.extend(recursive_expanded_tokens)
                     current_macros.update(inner_macros)
+            elif isinstance(t, CommandToken) and t.value == "debug_print_macros":
+                print(f"printing macros from {t}: \n", current_macros)
             elif t.require_macros:
                 t = attr.evolve(t, meta=(t.meta | {"macros": current_macros.copy()}))
                 transformed_tokens.append(t)

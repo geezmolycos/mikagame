@@ -101,6 +101,8 @@ def _(e):
         except Exception as e:
             import traceback
             traceback.print_exc()
+            import sys
+            sys.exit(1)
     asyncio.create_task(_())
     # ui.screen_update(jq_cont)
 

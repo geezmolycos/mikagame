@@ -1,0 +1,188 @@
+
+corridor:
+  !para
+  _t: choice
+  region: map
+  c: 这是家里的走廊，通往你家的（几乎）每个房间。
+  ch:
+    - key: 去卧室
+      p:
+        _t: imm
+        next_conv: =.<home.bedroom
+    - key: 去阳台
+      p:
+        _t: imm
+        next_conv: =.<home.balcony
+    - key: 去厕所
+      p:
+        _t: imm
+        next_conv: =.<home.bathroom
+    - key: 出门
+      p:
+        _t: imm
+        next_conv: =.<home_neighbor.yard
+
+bedroom:
+  !para
+  _t: choice
+  region: map
+  c: 现在，你在自己家的卧室中，你刚刚起床。你环顾四周。
+  ch:
+    - key: 去书桌前
+      p:
+        _t: imm
+        next_conv: =.<bedroom.desk
+    - key: 出卧室门
+      p:
+        _t: imm
+        next_conv: =.<home.corridor
+    - key: 看墙上的钟表
+      p:
+        _t: seq
+        region: speech
+        s:
+          - 墙上是你的钟表，这只廉价塑料钟表样式简约，由电池提供动力，上面有三根表针。
+          - 你仔细看了看，现在大致是中午。
+    - key: 看柜子上的小熊玩偶
+      p:
+        _t: [imm, call]
+        call_target: .<bedroom.teddybear
+  
+  teddybear:
+    !para
+    _t: seq
+    region: speech
+    s:
+      - 这是你的小熊玩偶，正在你的柜子上放着。
+      - _t: choice
+        c: 要拿小熊玩偶吗？
+        ch:
+          - key: 拿
+            p: 
+              _t: seq
+              region: speech
+              s:
+                - 你把小熊玩偶从柜子上拿下来。你知道，如果用手按的话会发出吱吱的声音。
+                - 把熊的形象做成玩具，激发了你奇怪的感觉，你感觉这样似乎不太好。
+                - _t: choice
+                  c: 要按吗？
+                  ch:
+                    - key: 按一下
+                      p:
+                        _t: branch
+                        criteria: .<teddybear.broken
+                        f:
+                          _t: seq
+                          region: speech
+                          s:
+                            - 你按了一下小熊玩偶的肚子。
+                            - c: '*{\s[bg=yellow,fg=black]吱}\tickm[:6]...\delayc[;2]\tickm[:1]\s[hlit+]吱！\delayc[;3]'
+                              _t: imm
+                            - 你觉得还是放回去比较好。就让它好好待在那里吧。\def[.<teddybear.broken+]
+                        t:
+                          region: speech
+                          c: 小熊已经被按坏了，露出了里面的棉花。
+                    - key: 不按
+                      p:
+                        _t: seq
+                        region: speech
+                        s:
+                          - 天知道你这样一按会不会按坏，你决定不按为好。
+          - key: 不拿
+            p:
+              region: speech
+              c: 你决定不拿为好
+    return_conv: +
+  
+  desk:
+    !para
+    _t: choice
+    region: map
+    c: 这是你的书桌，上面放着你的杂物。
+    ch:
+      - key: 返回卧室
+        p:
+          _t: imm
+          next_conv: =.<bedroom
+      - key: 你的电脑
+        p:
+          _t: seq
+          region: speech
+          s:
+            - 电脑，人类科技的最高结晶，巨大的生产力潜能。
+            - 具有无穷无尽的魔力和可能性。
+            - 你的这台电脑已经有几个年头了，它的性能已经不在尖端水平，也偶尔会出现小毛病。
+            - 但是它还是你的电脑。
+      - key: 你的笔
+        p:
+          _t: seq
+          region: speech
+          s:
+            - 这是你写字的工具。
+            - 它是一支超级牛逼无敌炸天自动铅笔。
+            - 开个玩笑啦，这只是一支普通铅笔。你感觉广告中的自动铅笔不是很可靠的样子。
+      - key: 摆件
+        p:
+          _t: choice
+          region: speech
+          c: 你的桌面上放着三个摆件，要看哪一个？
+          ch:
+            - key: 马形物件
+              p:
+                _t: seq
+                region: speech
+                s:
+                  - 塑料制成的黄色雌性小马形象，有着粉红色的长直发，自然地微微卷曲。她有一对翅膀。
+            - key: 人形物件
+              p:
+                _t: seq
+                region: speech
+                s:
+                  - 直立的雄性人形生物塑像，长着羊角和羊耳朵。除了你，大概没有人会买这样的物件。
+            - key: 狮子
+              p:
+                _t: seq
+                region: speech
+                s:
+                  - 两只金属制成的非传统华夏传统狮子，你认为这两只做得有点点像{\glyphset[c_hz]\g[-虫著]\g[-虫雚]}。
+      - key: 三角架
+        p:
+          _t: seq
+          region: speech
+          s:
+            - 这是一个铁做的三脚架，你不记得房间里有这样的东西。它上面放着一只烧杯，里面有白色的物质，下面的酒精灯已经熄灭了。
+            - 看起来烧杯里的物质曾被加热过。在不知道这东西的用途前，你最好还是不要碰。
+            
+balcony:
+  !para
+  _t: choice
+  region: map
+  c: 你在阳台，今天在下小雨，阳台挂的衣服已经晾干了，因为下雨的缘故，街道上没有一个人。
+  ch:
+    - key: 去走廊
+      p:
+        _t: imm
+        next_conv: =.<home.corridor
+    - key: 收衣服
+      p:
+        _t: seq
+        region: speech
+        s: 
+          - 衣服挂得太高，又没有撑衣杆，收不下来。
+    
+bathroom:
+  !para
+  _t: choice
+  region: map
+  c: 这里是厕所，你现在不想上厕所。厕所里有典型的白色陶瓷冲水马桶（你开始好奇为什么叫做「马桶」），还有白色陶瓷洗手池。难道所有厕所的洗手池都是白色的？
+  ch:
+    - key: 去走廊
+      p:
+        _t: imm
+        next_conv: =.<home.corridor
+    - key: 冲厕所
+      p:
+        _t: seq
+        region: speech
+        s: 
+          - 你冲了厕所。

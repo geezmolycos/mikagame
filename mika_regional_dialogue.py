@@ -90,6 +90,7 @@ class RegionalDialogueManager:
     is_next_sentence_call = attr.ib(default=False)
     is_next_sentence_return = attr.ib(default=False)
     call_stack = attr.ib(factory=list)
+    is_returned = attr.ib(default=False)
     
     @property
     def current_sentence(self):
@@ -104,6 +105,7 @@ class RegionalDialogueManager:
         )
         proxy = ModularMacroProxy(global_macros=self.macros, base_module=name)
         proxy[".choice"] = choice
+        proxy[".returned"] = self.is_returned
         expanded, macros = self.macro_parser.expand_and_get_defined_macros(s.content_tokens, proxy)
         self.next_sentence_name = mika_modules.resolve_module_ref(
             mock,
@@ -129,6 +131,7 @@ class RegionalDialogueManager:
         return self.eval_conv(self.current_sentence_name, attr_name)
     
     def next_sentence(self):
+        self.is_returned = False
         if self.is_next_sentence_call:
             mock = mika_modules.resolve_module_ref(
                 self.current_sentence_name,
@@ -141,6 +144,7 @@ class RegionalDialogueManager:
             ))
         if self.is_next_sentence_return:
             self.current_sentence_name = self.call_stack.pop()
+            self.is_returned = True
         else:
             self.current_sentence_name = self.next_sentence_name
     
